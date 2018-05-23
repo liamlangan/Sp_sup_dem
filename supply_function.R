@@ -401,6 +401,8 @@ poo <- expression( (5*(1 - (1 / (1 + exp(2.0*(3 - x)))))))
 
 pam <- function(x) {-(5 * (exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2))}
 
+psi_leaf <- seq(0.01, 7, length=1000)
+psi_soil <- 0
 e_can <- function(psi_leaf) { ( psi_leaf - psi_soil )*((1 - (1 / (1 + exp(2.0*(3 - psi_leaf)))))) / res }
 
 suppx <- e_can(psi_leaf)
@@ -409,7 +411,15 @@ sum_suppx <- rep(0, length(suppx))
 
 for(i in 1:length(suppx))
 {
-  sum_suppx[i] <- sum(suppx[1:i])
+  if(i < 2) 
+  {
+    sum_suppx[i] <- suppx[i]
+  }
+  
+  if(i > 1)
+  {
+    sum_suppx[i] <- sum_suppx[i-1] + abs(suppx[i] - suppx[i-1]) 
+  }
 }
 
 supp1 <- rep(0, length=1000)

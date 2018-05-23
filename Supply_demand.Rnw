@@ -27,18 +27,21 @@ mycol=c("green","blue","purple","red")
 \section{Introduction}
 Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function ($E_{p-canopy}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere, i.e. potential transpiration. Transpiration is influenced by xylem pressure ($\psi_{xylem}$), hydraulic conductivity of the plant ($K_{plant}$), the hydraulic conductivity of the soil $K_{soil}$ and the rate at which hydraulic conductivity is reduced as xylem pressure increases or soil conductivity decreases.   
 
-Below is the conductance vulnerability curve we use in aDGVM2 which is analagous to Sperry's curve.  
-
+Below are parameters for the vulnerability-conductance curve.
 <<>>==
 p50 <- 2.5 # the matric potential where conductance is reduced by 50%
 K_max <- 8 # maximum plant conductance - this is a trait in aDGVM2
 res <- 1/K_max # resistance is simply the inverse of conductance
 psi_canopy <- seq(0.0, 5, length=1000) 
-predawn_soil_mat_pot <- seq(0,2, by=0.5) # this assumes initial plant matric potential is the same as the soil matric potential
+predawn_soil_mat_pot <- seq(0,2, by=0.5) # initial plant matric potential = soil matric potential
 cum_can_transport <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
-
-sperry_cond <- function(psi_leaf) { ((1 - (1 / (1 + exp(3.0*(p50 - psi_canopy)))))) / res }
-
+@
+with the the conductance vulnerability curve we use in aDGVM2, which is analagous to Sperry's curve, defined as:
+<<>>==
+sperry_cond <- function(psi_canopy) { ((1 - (1 / (1 + exp(3.0*(p50 - psi_canopy)))))) / res }
+@
+The transpiration rate is the integral of the vulnerability-conductance curve between any the soil (pre-dawn) matric potential and ($p-canopy$)(canopy sap pressure) and is calculated as follows: 
+<<>>==
 for(j in 1:length(predawn_soil_mat_pot))
   {
     for(i in 1:1000)
@@ -46,15 +49,31 @@ for(j in 1:length(predawn_soil_mat_pot))
         ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], psi_canopy[i] )
         cum_can_transport[i,j] <- pmax(0, ffx$value)
       }
-  }
+}
+@
+<< echo=FALSE >>==
+for(l in 1:length(predawn_soil_mat_pot)) # this just removes the zeros from the curves 
+{
+  kop <- which(cum_can_transport[,l] == 0)
+  cum_can_transport[kop,l] <- NA
+}
 
 @
 
-<<fig.width=16, fig.height=5, echo=FALSE>>==
-par(mfrow=c(1,2))
-plot(psi_canopy, sperry_cond(psi_canopy), type="l", ylab="Soil-canopy hydraulic conductance", xlab="Sap pressure (-MPa)", cex.lab=1.4)
-plot(psi_canopy, cum_can_transport[,1], type="l", ylab="Transpiration rate E (kg hr^1 m^2)", xlab="Sap pressure (-MPa)", cex.lab=1.4)
+%\begin(figure)
+\begin{centering}
+<<fig.width=16, echo=FALSE, fig.height=8, ,fig.cap="\\label{fig:figs}Hydraulic conductance and transpitation as a function of sap xylem pressure.">>==
+par(mfrow=c(1,2), mar=c(7,8,4,1))
+plot(psi_canopy, sperry_cond(psi_canopy), type="l", ylab="Hydraulic conductance (kg hr^1 MPa^1 m^2)", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
+plot(psi_canopy, cum_can_transport[,1], type="l", ylab="Transpiration rate E (kg hr^1 m^2)", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
+lines(psi_canopy, cum_can_transport[,5], lwd=2)
+
 @
+\end{centering}
+%\caption{Plot of 1:10 and a bar plot beside it in a figure that is 4x6 inches}
+%\end(figure)
+
+
 
 \end{document}
 

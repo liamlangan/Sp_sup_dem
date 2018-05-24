@@ -27,7 +27,7 @@ mycol=c("green","blue","purple","red")
 \section{Introduction}
 Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function ($E_{p-canopy}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere, i.e. potential transpiration. Transpiration is influenced by xylem pressure ($\psi_{xylem}$), hydraulic conductivity of the plant ($K_{plant}$), the hydraulic conductivity of the soil $K_{soil}$ and the rate at which hydraulic conductivity is reduced as xylem pressure increases or soil conductivity decreases.   
 
-Below are parameters for the vulnerability-conductance curve.
+Below are parameters for the vulnerability-conductance curve,
 <<>>==
 p50 <- 2.5 # the matric potential where conductance is reduced by 50%
 K_max <- 8 # maximum plant conductance - this is a trait in aDGVM2
@@ -35,6 +35,26 @@ res <- 1/K_max # resistance is simply the inverse of conductance
 psi_canopy <- seq(0.0, 5, length=1000) 
 predawn_soil_mat_pot <- seq(0,2, by=0.5) # initial plant matric potential = soil matric potential
 cum_can_transport <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
+
+## make transpiration demand --------------------------------------------------------------------------------------------
+# Maximum stomatal conductance
+Gmax <- 12563.1 # (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)
+G <- rep(Gmax, length=5)
+VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) 
+# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes sense and produces realistic
+# amounts of transpirtational demand. 
+#evap_demand <- G*VPD
+
+# need to define an Pcrit, i.e. a matric potential we choose where we decide conductance is effectively zero. 
+# We use this to get Ecrit, i.e. maximum transpiration beyond which leads to runaway cavitation  
+P_crit <- 4 # MPa - this is arbitrary and could be a plant trait. 
+# In Sperry (2016) a P_crit cutoff is chosen (either very low conductance or 
+# shallow slope of a tangent to the transpiration curve)
+
+# get maximum transpiration possible based on Pcrit and soil matric potential 
+E_crit <- rep(0, lenght=5) # maximum transpiration beyond which leads to runaway cavitation
+evap_demand <- rep(0, lenght=5) # evaporative demand
+
 @
 with the the conductance vulnerability curve we use in aDGVM2, which is analagous to Sperry's curve, defined as:
 <<>>==
@@ -51,13 +71,14 @@ for(j in 1:length(predawn_soil_mat_pot))
       }
 }
 @
+
+
 << echo=FALSE >>==
 for(l in 1:length(predawn_soil_mat_pot)) # this just removes the zeros from the curves 
 {
   kop <- which(cum_can_transport[,l] == 0)
   cum_can_transport[kop,l] <- NA
 }
-
 @
 
 %\begin(figure)

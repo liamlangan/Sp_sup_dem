@@ -79,7 +79,55 @@ for(l in 1:length(predawn_soil_mat_pot)) # this just removes the zeros from the 
   kop <- which(cum_can_transport[,l] == 0)
   cum_can_transport[kop,l] <- NA
 }
+
 @
+Here we get the slope of the line which is tangent to the tanspiration curve at any particulat water potential. This slope is the conductance at this water potential. 
+<<>>==
+cond_max_slope_sperry <- rep(0, lenght=5) # get the maximum slope of conductance given pre-dawn water potential
+for(i in 1:length(predawn_soil_mat_pot))
+  {
+    cond_max_slope_sperry[i] <-  sperry_cond(predawn_soil_mat_pot[i]) 
+    # for Sperry the maximum conductance is always the pre-dawn matric potential/soil matric potential 
+  }
+@
+
+We calculate the maximum transpiration beyond which leads to runaway cavitation $E_{crit}$ based on a matric potential we choose where we decide conductance is effectively zero $P_{crit}$. 
+<<>>==
+for(j in 1:5)
+  {
+    ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], P_crit )
+    E_crit[j] <- pmax(0, ffx$value)
+    evap_demand[j] <- G[j]*VPD
+    if(evap_demand[j] > E_crit[j]) evap_demand[j] <- E_crit[j] # demand can't be greater than maximum supply
+  }
+@
+
+We then calculate the matric potential where evaporative demand is met
+<<>>==
+## quick and dirty method to find the psi where demand is met. 
+demand_met_at_sperry <- rep(0, length=5)
+psi_demand_met_at_sperry <- rep(0, length=5)
+demand_met_at_slope_sperry <- rep(0, length=5)
+loss_function_sperry <- rep(0, length=5)
+regulated_transpiration <- rep(0, length=5)
+regulated_leaf_psi <- rep(0, length=5)
+
+for(i in 1:5)
+  {
+    demand_met_at_sperry[i] <- which(cum_can_transport[,i] >= evap_demand[i]) 
+    psi_demand_met_at_sperry[i] <- psi_leaf[demand_met_at_sperry[i]] # the matric potential where demand is met
+    demand_met_at_slope_sperry[i] <- sperry_cond(psi_demand_met_at_sperry[i]) # slope of tangent to suppy curve where demand is met
+    loss_function_sperry[i] <- demand_met_at_slope_sperry[i] / cond_max_slope_sperry 
+    regulated_leaf_psi[i] <- predawn_soil_mat_pot[i] + ((psi_demand_met_at_sperry[i] - predawn_soil_mat_pot[i])*loss_function_sperry[i])
+
+    ffx <- integrate(sperry_cond, predawn_soil_mat_pot[i], regulated_leaf_psi[i] )
+    regulated_transpiration[i] <- pmax(0, ffx$value)
+    G[i] <- G[i]*loss_function_sperry[i]
+    
+  }
+
+@
+
 
 %\begin(figure)
 \begin{centering}

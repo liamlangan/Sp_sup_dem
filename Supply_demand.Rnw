@@ -103,7 +103,7 @@ for(j in 1:5)
 @
 
 We then calculate the matric potential where evaporative demand is met
-<<>>==
+<<warning=FALSE>>==
 ## quick and dirty method to find the psi where demand is met. 
 demand_met_at_sperry <- rep(0, length=5)
 psi_demand_met_at_sperry <- rep(0, length=5)
@@ -115,7 +115,7 @@ regulated_leaf_psi <- rep(0, length=5)
 for(i in 1:5)
   {
     demand_met_at_sperry[i] <- which(cum_can_transport[,i] >= evap_demand[i]) 
-    psi_demand_met_at_sperry[i] <- psi_leaf[demand_met_at_sperry[i]] # the matric potential where demand is met
+    psi_demand_met_at_sperry[i] <- psi_canopy[demand_met_at_sperry[i]] # the matric potential where demand is met
     demand_met_at_slope_sperry[i] <- sperry_cond(psi_demand_met_at_sperry[i]) # slope of tangent to suppy curve where demand is met
     loss_function_sperry[i] <- demand_met_at_slope_sperry[i] / cond_max_slope_sperry 
     regulated_leaf_psi[i] <- predawn_soil_mat_pot[i] + ((psi_demand_met_at_sperry[i] - predawn_soil_mat_pot[i])*loss_function_sperry[i])
@@ -135,7 +135,21 @@ for(i in 1:5)
 par(mfrow=c(1,2), mar=c(7,8,4,1))
 plot(psi_canopy, sperry_cond(psi_canopy), type="l", ylab="Hydraulic conductance (kg hr^1 MPa^1 m^2)", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
 plot(psi_canopy, cum_can_transport[,1], type="l", ylab="Transpiration rate E (kg hr^1 m^2)", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
+points(psi_demand_met_at_sperry[1], evap_demand[1], type="p", cex=0.9, pch=19, col="black")
+points(regulated_leaf_psi[1], regulated_transpiration[1], type="p", cex=1.6, pch=21, col="red", lwd=2)
+lines(psi_canopy, cum_can_transport[,2], lwd=2)
+points(psi_demand_met_at_sperry[2], evap_demand[2], type="p", cex=0.9, pch=19, col="black")
+points(regulated_leaf_psi[2], regulated_transpiration[2], type="p", cex=1.6, pch=21, col="red", lwd=2)
+lines(psi_canopy, cum_can_transport[,3], lwd=2)
+points(psi_demand_met_at_sperry[3], evap_demand[3], type="p", cex=0.9, pch=19, col="black")
+points(regulated_leaf_psi[3], regulated_transpiration[3], type="p", cex=1.6, pch=21, col="red", lwd=2)
+lines(psi_canopy, cum_can_transport[,4], lwd=2)
+points(psi_demand_met_at_sperry[4], evap_demand[4], type="p", cex=0.9, pch=19, col="black")
+points(regulated_leaf_psi[4], regulated_transpiration[4], type="p", cex=1.6, pch=21, col="red", lwd=2)
 lines(psi_canopy, cum_can_transport[,5], lwd=2)
+points(psi_demand_met_at_sperry[5], evap_demand[5], type="p", cex=0.9, pch=19, col="black")
+points(regulated_leaf_psi[5], regulated_transpiration[5], type="p", cex=1.6, pch=21, col="red", lwd=2)
+legend("topleft", c("unregulated leaf psi","regulated leaf psi","p50=2.5"), col=c("black", "red", "white"), pch = 1, cex=1.5, lwd=2)
 
 @
 \end{centering}

@@ -114,15 +114,24 @@ regulated_leaf_psi <- rep(0, length=5)
 
 for(i in 1:5)
   {
+    # positions on transport curve where supply can meet demand
+    # this throws a warning but returns the first number which is what I want
     demand_met_at_sperry[i] <- which(cum_can_transport[,i] >= evap_demand[i]) 
-    psi_demand_met_at_sperry[i] <- psi_canopy[demand_met_at_sperry[i]] # the matric potential where demand is met
-    demand_met_at_slope_sperry[i] <- sperry_cond(psi_demand_met_at_sperry[i]) # slope of tangent to suppy curve where demand is met
+    # the matric potential where demand is met
+    psi_demand_met_at_sperry[i] <- psi_canopy[demand_met_at_sperry[i]] 
+    # slope of tangent to supply/conductance curve where demand is met
+    demand_met_at_slope_sperry[i] <- sperry_cond(psi_demand_met_at_sperry[i]) 
+    # this is sperrys loss function (slope where demand is met / max slope)
     loss_function_sperry[i] <- demand_met_at_slope_sperry[i] / cond_max_slope_sperry 
+    # this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)
     regulated_leaf_psi[i] <- predawn_soil_mat_pot[i] + ((psi_demand_met_at_sperry[i] - predawn_soil_mat_pot[i])*loss_function_sperry[i])
+    # this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)
+    # dP' = predawn_matric_potential - unregulated_matric_potential, this doesn't work unless dP is added to predawn matric potential
 
     ffx <- integrate(sperry_cond, predawn_soil_mat_pot[i], regulated_leaf_psi[i] )
-    regulated_transpiration[i] <- pmax(0, ffx$value)
-    G[i] <- G[i]*loss_function_sperry[i]
+    regulated_transpiration[i] <- pmax(0, ffx$value) # regulated transpiration (E in Sperry)
+    G[i] <- G[i]*loss_function_sperry[i] # regulated stomatal conductance
+    # E = G * VPD so G = E/VPD
     
   }
 

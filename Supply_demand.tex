@@ -1,0 +1,223 @@
+\documentclass[a4paper]{article}\usepackage[]{graphicx}\usepackage[]{color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage[cm]{fullpage}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\textwidth=18cm
+\usepackage[backend=bibtex]{biblatex}
+
+
+
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+\title{Sperry's supply-demand-loss model}
+\author{Liam Langan}
+\maketitle
+
+
+\section{Introduction}
+Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function ($E_{p-canopy}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere, i.e. potential transpiration. Transpiration is influenced by xylem pressure ($\psi_{xylem}$), hydraulic conductivity of the plant ($K_{plant}$), the hydraulic conductivity of the soil $K_{soil}$ and the rate at which hydraulic conductivity is reduced as xylem pressure increases or soil conductivity decreases.   
+
+Below are parameters for the vulnerability-conductance curve,
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{p50} \hlkwb{<-} \hlnum{2.5} \hlcom{# the matric potential where conductance is reduced by 50%}
+\hlstd{K_max} \hlkwb{<-} \hlnum{8} \hlcom{# maximum plant conductance - this is a trait in aDGVM2}
+\hlstd{res} \hlkwb{<-} \hlnum{1}\hlopt{/}\hlstd{K_max} \hlcom{# resistance is simply the inverse of conductance}
+\hlstd{psi_canopy} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0.0}\hlstd{,} \hlnum{5}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
+\hlstd{predawn_soil_mat_pot} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{2}\hlstd{,} \hlkwc{by}\hlstd{=}\hlnum{0.5}\hlstd{)} \hlcom{# initial plant matric potential = soil matric potential}
+\hlstd{cum_can_transport} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# this is the supply function}
+
+\hlcom{## make transpiration demand --------------------------------------------------------------------------------------------}
+\hlcom{# Maximum stomatal conductance}
+\hlstd{Gmax} \hlkwb{<-} \hlnum{12563.1} \hlcom{# (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)}
+\hlstd{G} \hlkwb{<-} \hlkwd{rep}\hlstd{(Gmax,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{VPD} \hlkwb{<-} \hlnum{0.5}\hlopt{*}\hlnum{0.001}   \hlcom{# (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
+\hlcom{# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes sense and produces realistic}
+\hlcom{# amounts of transpirtational demand. }
+\hlcom{#evap_demand <- G*VPD}
+
+\hlcom{# need to define an Pcrit, i.e. a matric potential we choose where we decide conductance is effectively zero. }
+\hlcom{# We use this to get Ecrit, i.e. maximum transpiration beyond which leads to runaway cavitation  }
+\hlstd{P_crit} \hlkwb{<-} \hlnum{4} \hlcom{# MPa - this is arbitrary and could be a plant trait. }
+\hlcom{# In Sperry (2016) a P_crit cutoff is chosen (either very low conductance or }
+\hlcom{# shallow slope of a tangent to the transpiration curve)}
+
+\hlcom{# get maximum transpiration possible based on Pcrit and soil matric potential }
+\hlstd{E_crit} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{lenght}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# maximum transpiration beyond which leads to runaway cavitation}
+\hlstd{evap_demand} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{lenght}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# evaporative demand}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+with the the conductance vulnerability curve we use in aDGVM2, which is analagous to Sperry's curve, defined as:
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{sperry_cond} \hlkwb{<-} \hlkwa{function}\hlstd{(}\hlkwc{psi_canopy}\hlstd{) \{ ((}\hlnum{1} \hlopt{-} \hlstd{(}\hlnum{1} \hlopt{/} \hlstd{(}\hlnum{1} \hlopt{+} \hlkwd{exp}\hlstd{(}\hlnum{3.0}\hlopt{*}\hlstd{(p50} \hlopt{-} \hlstd{psi_canopy))))))} \hlopt{/} \hlstd{res \}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+The transpiration rate is the integral of the vulnerability-conductance curve between any the soil (pre-dawn) matric potential and ($p-canopy$)(canopy sap pressure) and is calculated as follows: 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwa{for}\hlstd{(j} \hlkwa{in} \hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(predawn_soil_mat_pot))}
+  \hlstd{\{}
+    \hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{1000}\hlstd{)}
+      \hlstd{\{}
+        \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(sperry_cond, predawn_soil_mat_pot[j], psi_canopy[i] )}
+        \hlstd{cum_can_transport[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
+      \hlstd{\}}
+\hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+Here we get the slope of the line which is tangent to the tanspiration curve at any particulat water potential. This slope is the conductance at this water potential. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{cond_max_slope_sperry} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{lenght}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# get the maximum slope of conductance given pre-dawn water potential}
+\hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(predawn_soil_mat_pot))}
+  \hlstd{\{}
+    \hlstd{cond_max_slope_sperry[i]} \hlkwb{<-}  \hlkwd{sperry_cond}\hlstd{(predawn_soil_mat_pot[i])}
+    \hlcom{# for Sperry the maximum conductance is always the pre-dawn matric potential/soil matric potential }
+  \hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+We calculate the maximum transpiration beyond which leads to runaway cavitation $E_{crit}$ based on a matric potential we choose where we decide conductance is effectively zero $P_{crit}$. 
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwa{for}\hlstd{(j} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{5}\hlstd{)}
+  \hlstd{\{}
+    \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(sperry_cond, predawn_soil_mat_pot[j], P_crit )}
+    \hlstd{E_crit[j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
+    \hlstd{evap_demand[j]} \hlkwb{<-} \hlstd{G[j]}\hlopt{*}\hlstd{VPD}
+    \hlkwa{if}\hlstd{(evap_demand[j]} \hlopt{>} \hlstd{E_crit[j]) evap_demand[j]} \hlkwb{<-} \hlstd{E_crit[j]} \hlcom{# demand can't be greater than maximum supply}
+  \hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+We then calculate the matric potential where evaporative demand is met
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## quick and dirty method to find the psi where demand is met. }
+\hlstd{demand_met_at_sperry} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{psi_demand_met_at_sperry} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{demand_met_at_slope_sperry} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{loss_function_sperry} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{regulated_transpiration} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{regulated_leaf_psi} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+
+\hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{5}\hlstd{)}
+  \hlstd{\{}
+    \hlcom{# positions on transport curve where supply can meet demand}
+    \hlcom{# this throws a warning but returns the first number which is what I want}
+    \hlstd{demand_met_at_sperry[i]} \hlkwb{<-} \hlkwd{which}\hlstd{(cum_can_transport[,i]} \hlopt{>=} \hlstd{evap_demand[i])}
+    \hlcom{# the matric potential where demand is met}
+    \hlstd{psi_demand_met_at_sperry[i]} \hlkwb{<-} \hlstd{psi_canopy[demand_met_at_sperry[i]]}
+    \hlcom{# slope of tangent to supply/conductance curve where demand is met}
+    \hlstd{demand_met_at_slope_sperry[i]} \hlkwb{<-} \hlkwd{sperry_cond}\hlstd{(psi_demand_met_at_sperry[i])}
+    \hlcom{# this is sperrys loss function (slope where demand is met / max slope)}
+    \hlstd{loss_function_sperry[i]} \hlkwb{<-} \hlstd{demand_met_at_slope_sperry[i]} \hlopt{/} \hlstd{cond_max_slope_sperry}
+    \hlcom{# this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)}
+    \hlstd{regulated_leaf_psi[i]} \hlkwb{<-} \hlstd{predawn_soil_mat_pot[i]} \hlopt{+} \hlstd{((psi_demand_met_at_sperry[i]} \hlopt{-} \hlstd{predawn_soil_mat_pot[i])}\hlopt{*}\hlstd{loss_function_sperry[i])}
+    \hlcom{# this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)}
+    \hlcom{# dP' = predawn_matric_potential - unregulated_matric_potential, this doesn't work unless dP is added to predawn matric potential}
+
+    \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(sperry_cond, predawn_soil_mat_pot[i], regulated_leaf_psi[i] )}
+    \hlstd{regulated_transpiration[i]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)} \hlcom{# regulated transpiration (E in Sperry)}
+    \hlstd{G[i]} \hlkwb{<-} \hlstd{G[i]}\hlopt{*}\hlstd{loss_function_sperry[i]} \hlcom{# regulated stomatal conductance}
+    \hlcom{# E = G * VPD so G = E/VPD}
+
+  \hlstd{\}}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+%\begin(figure)
+\begin{centering}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-1} \caption{\label{fig:figs}Hydraulic conductance and transpitation as a function of sap xylem pressure.}\label{fig:unnamed-chunk-10}
+\end{figure}
+
+
+\end{knitrout}
+\end{centering}
+%\caption{Plot of 1:10 and a bar plot beside it in a figure that is 4x6 inches}
+%\end(figure)
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+

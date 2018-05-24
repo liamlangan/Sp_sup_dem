@@ -147,7 +147,7 @@ points(regulated_leaf_psi[4], regulated_transpiration[4], type="p", cex=1.6, pch
 lines(psi_leaf, cum_can_transportx[,5], lwd=2)
 points(psi_demand_met_at_sperry[5], evap_demand[5], type="p", cex=0.9, pch=19, col="black")
 points(regulated_leaf_psi[5], regulated_transpiration[5], type="p", cex=1.6, pch=21, col="red", lwd=2)
-legend("topleft", c("unregulated leaf psi","regulated","p50=2.5"), col=c("black", "red", "white"), pch = 1, cex=1.5, lwd=2)
+legend("topleft", c("unregulated leaf psi","regulated leaf psi","p50=2.5"), col=c("black", "red", "white"), pch = 1, cex=1.5, lwd=2)
 graphics.off()
 
 

@@ -189,16 +189,16 @@ for(j in 1:5)
   {
 
   #  demandx[i] <- cum_can_transportx[i,1]
-   psi_1[,j] <- seq(predawn_soil_mat_pot[j], max(psi_leaf), length=1000) #psi_leaf[i]
+   psi_1[,j] <- seq(0, max(psi_leaf), length=1000) #psi_leaf[i]
    slope_demand[i,j] <- sperry_cond(psi_1[i,j])
   
    loss_fun_sp_gs[i,j] <- slope_demand[i,j] / max_slo_sp[j] 
    #reg_leaf_psi[i,j] <- predawn_soil_mat_pot[j] + ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])
-   if(i==1) reg_leaf_psi[i,j] <- ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])
+   if(i==1) reg_leaf_psi[i,j] <- pmax(0, ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j]))
       
    if(i>1)
    {
-     reg_leaf_psi[i,j] <- pmax(reg_leaf_psi[i-1,j], ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j]))
+     reg_leaf_psi[i,j] <- pmax(0, pmax(reg_leaf_psi[i-1,j], ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])))
    }
     
    ffx <- integrate(sperry_cond, 0, psi_1[i,j] )
@@ -211,6 +211,13 @@ for(j in 1:5)
    G[i,j] <- G[i,j]*loss_fun_sp_gs[i,j]
   
   }
+}
+
+holder_4_max <- rep(0, length=5)
+
+for(i in 1:5)
+{
+  holder_4_max[i] <- which(reg_leaf_psi[,i]==max(reg_leaf_psi[,i]))
 }
 
 kss <- which(reg_leaf_psi==max(reg_leaf_psi))

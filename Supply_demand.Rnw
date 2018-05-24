@@ -113,11 +113,24 @@ loss_function_sperry <- rep(0, length=5)
 regulated_transpiration <- rep(0, length=5)
 regulated_leaf_psi <- rep(0, length=5)
  
-## this max regulation seems to be 
-regulated_leaf_psi_max_full <- matrix(0,0,nrow=1000, ncol=5)
+##---------------------------------------------------------------------------------------------------------------------
+##---------------------------------------------------------------------------------------------------------------------
+## max regulation is the point where delta P hits its maximum, it should be held at max once passed.
+psi_1 <- matrix(0,0,nrow=1000, ncol=5)#
 slope_demand <- matrix(0,0,nrow=1000, ncol=5)
+loss_fun_sp_gs <- matrix(0,0,nrow=1000, ncol=5)
+reg_leaf_psi <- matrix(0,0,nrow=1000, ncol=5)
 
-regulated_leaf_psi_max <- rep(0, length=5)
+regulated_trans <- matrix(0,0,nrow=1000, ncol=5)
+regulated_Gs <- matrix(0,0,nrow=1000, ncol=5)
+
+regulated_trans_trap <- matrix(0,0,nrow=1000, ncol=5)
+regulated_Gs_trap <- matrix(0,0,nrow=1000, ncol=5)
+
+non_regulated_trans <- matrix(0,0,nrow=1000, ncol=5)
+non_regulated_Gs <- matrix(0,0,nrow=1000, ncol=5)
+
+#max_slo_sp <- sperry_cond(0) 
 
 max_slo_sp <- rep(0, length=5)
 
@@ -126,21 +139,56 @@ for(j in 1:5)
   max_slo_sp[j] <- sperry_cond(predawn_soil_mat_pot[j])
 }
 
-for(i in 1:1000)
+for(j in 1:5)
 {
-  for(j in 1:5)
+  for(i in 1:1000)
   {
-      slope_demand[i,j] <- sperry_cond(psi_1[i])
+   psi_1[,j] <- seq(0, max(psi_canopy), length=1000) #psi_leaf[i]
+   slope_demand[i,j] <- sperry_cond(psi_1[i,j])
+  
+   loss_fun_sp_gs[i,j] <- slope_demand[i,j] / max_slo_sp[j] 
+   #reg_leaf_psi[i,j] <- predawn_soil_mat_pot[j] + ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])
+   if(i==1) reg_leaf_psi[i,j] <- pmax(0, ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j]))
+      
+   if(i>1)
+   {
+     reg_leaf_psi[i,j] <- pmax(0, pmax(reg_leaf_psi[i-1,j], ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])))
+   }
   }
 }
 
+holder_4_max <- rep(0, length=5)
+holder_psi_max_threshold <- rep(0, length=5)
+max_leaf_regulation <- rep(0, length=5)
+
+##---------------------------------------------------------------------------------------------------------------------
+##---------------------------------------------------------------------------------------------------------------------
+##---------------------------------------------------------------------------------------------------------------------
+
 for(i in 1:5)
   {
+    holder_4_max[i] <- which(reg_leaf_psi[,i]==max(reg_leaf_psi[,i]))
+    holder_psi_max_threshold[i] <- psi_1[holder_4_max[i]] 
+    max_leaf_regulation[i] <- max(reg_leaf_psi[,i])
+    print("--------------------------------")
+    print("i")
+    print(i)
+    print("max_leaf_regulation[i]")
+    print(max_leaf_regulation[i])
+    
+    print("holder_psi_max_threshold[i]")
+    print(holder_psi_max_threshold[i])
+
     # positions on transport curve where supply can meet demand
     # this throws a warning but returns the first number which is what I want
     demand_met_at_sperry[i] <- which(cum_can_transport[,i] >= evap_demand[i]) 
     # the matric potential where demand is met
     psi_demand_met_at_sperry[i] <- psi_canopy[demand_met_at_sperry[i]] 
+    print("psi_demand_met_at_sperry[i]")
+    print(psi_demand_met_at_sperry[i])
+    
+    if(psi_demand_met_at_sperry[i] < holder_psi_max_threshold[i])
+    {
     # slope of tangent to supply/conductance curve where demand is met
     demand_met_at_slope_sperry[i] <- sperry_cond(psi_demand_met_at_sperry[i]) 
     # this is sperrys loss function (slope where demand is met / max slope)
@@ -149,10 +197,17 @@ for(i in 1:5)
     regulated_leaf_psi[i] <- predawn_soil_mat_pot[i] + ((psi_demand_met_at_sperry[i] - predawn_soil_mat_pot[i])*loss_function_sperry[i])
     # this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)
     # dP' = predawn_matric_potential - unregulated_matric_potential, this doesn't work unless dP is added to predawn matric potential
+    }
+    
+    if(psi_demand_met_at_sperry[i] < holder_psi_max_threshold[i])
+    {
+      regulated_leaf_psi[i] <-  max_leaf_regulation[i]
+    }
 
-    ffx <- integrate(sperry_cond, predawn_soil_mat_pot[i], regulated_leaf_psi[i] )
+    ffx <- integrate(sperry_cond, 0, regulated_leaf_psi[i] )
     regulated_transpiration[i] <- pmax(0, ffx$value) # regulated transpiration (E in Sperry)
-    G[i] <- G[i]*loss_function_sperry[i] # regulated stomatal conductance
+
+    # G[i] <- G[i]*loss_function_sperry[i] # regulated stomatal conductance
     # E = G * VPD so G = E/VPD
     
   }

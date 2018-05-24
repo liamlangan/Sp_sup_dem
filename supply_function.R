@@ -25,7 +25,7 @@ conductance <- function(x) (8*(1 - (1 / (1 + exp(2.0*(3 - x))))))
 p50 <- 0.5
 K_max <- 8
 res <- 1/K_max
-psi_leaf <- seq(0.0, 5, length=1000)
+psi_leaf <- seq(0.0, 8, length=1000)
 psi_soil <- 0.0
 cum_can_transport <- rep(0, length=1000)
 
@@ -40,7 +40,7 @@ sum_e <- e_can(psi_leaf)
 sperry_cond <- function(psi_leaf) { ((1 - (1 / (1 + exp(3.0*(2.5 - psi_leaf)))))) / res }
 #cum_can_transportx <- rep(0, length=1000)
 cum_can_transportx <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
-predawn_soil_mat_pot <- seq(0,4, length=5) # this assumes initial plant matric potential is the same as the soil matric potential
+predawn_soil_mat_pot <- seq(0,2, length=5) # this assumes initial plant matric potential is the same as the soil matric potential
 
 for(j in 1:length(predawn_soil_mat_pot))
   {
@@ -129,9 +129,9 @@ par(mfrow=c(2,2))
 plot(psi_leaf, sperry_cond(psi_leaf), cex=0.1, main="Sperry", ylab="Conductance") # Sperry's conductance rate (Sperry and Love 2015 Fig. 1)
 plot(psi_leaf, conductance(psi_leaf), cex=0.1, main="Liam", ylab="Conductance") # My conductance rate assuming both transpiraiton and conductance are affected by the matric potential difference
 
-graphics.off()
-pdf( file="Supply_demand_loss_Sperrys_way.pdf", width=14,height=8 )
-par( mfcol=c(2,2), mar=c(5,5,4,1))
+#graphics.off()
+#pdf( file="Supply_demand_loss_Sperrys_way.pdf", width=14,height=8 )
+#par( mfcol=c(2,2), mar=c(5,5,4,1))
 
 par(mfrow=c(1,1))
 plot(psi_leaf, cum_can_transportx[,1], type="l", lwd=2, cex=0.1, main="Sperry", ylab="Transport Rate") # Sperry's conductance rate (Sperry and Love 2015 Fig. 1)
@@ -150,50 +150,90 @@ lines(psi_leaf, cum_can_transportx[,5], lwd=2)
 points(psi_demand_met_at_sperry[5], evap_demand[5], type="p", cex=0.9, pch=19, col="black")
 points(regulated_leaf_psi[5], regulated_transpiration[5], type="p", cex=1.6, pch=21, col="red", lwd=2)
 legend("topleft", c("unregulated leaf psi","regulated leaf psi","p50=2.5"), col=c("black", "red", "white"), pch = 1, cex=1.5, lwd=2)
-graphics.off()
+#graphics.off()
 
 
 plot(psi_leaf, conductance(psi_leaf), cex=0.1, main="Liam", ylab="Conductance") # My conductance rate assuming both transpiraiton and conductance are affected by the matric potential difference
 
 ##------------------------------------------------------------------------------------------------------------------------------------------
 #sperry_cond <- function(psi_leaf) { ( psi_leaf )*((1 - (1 / (1 + exp(2.0*(3 - psi_leaf)))))) / res }
+G <- matrix(Gmax, Gmax, ,nrow=1000, ncol=5)
 
 #demandx <- rep(0, length=1000)
-psi_1 <- rep(0, length=1000)
-slope_demand <- rep(0, length=1000)
-loss_fun_sp_gs <- rep(0, length=1000)
-reg_leaf_psi <- rep(0, length=1000)
-regulated_trans <- rep(0, length=1000)
-regulated_Gs <- rep(0, length=1000)
+psi_1 <- matrix(0,0,nrow=1000, ncol=5)#
+slope_demand <- matrix(0,0,nrow=1000, ncol=5)
+loss_fun_sp_gs <- matrix(0,0,nrow=1000, ncol=5)
+reg_leaf_psi <- matrix(0,0,nrow=1000, ncol=5)
 
-non_regulated_trans <- rep(0, length=1000)
-non_regulated_Gs <- rep(0, length=1000)
+regulated_trans <- matrix(0,0,nrow=1000, ncol=5)
+regulated_Gs <- matrix(0,0,nrow=1000, ncol=5)
 
-max_slo_sp <- sperry_cond(0) 
+regulated_trans_trap <- matrix(0,0,nrow=1000, ncol=5)
+regulated_Gs_trap <- matrix(0,0,nrow=1000, ncol=5)
+
+non_regulated_trans <- matrix(0,0,nrow=1000, ncol=5)
+non_regulated_Gs <- matrix(0,0,nrow=1000, ncol=5)
+
+#max_slo_sp <- sperry_cond(0) 
+
+max_slo_sp <- rep(0, length=5)
+
+for(j in 1:5) 
+{
+  max_slo_sp[j] <- sperry_cond(predawn_soil_mat_pot[j])
+}
+
+for(j in 1:5)
+{
+  for(i in 1:1000)
+  {
+
+  #  demandx[i] <- cum_can_transportx[i,1]
+   psi_1[,j] <- seq(predawn_soil_mat_pot[j], max(psi_leaf), length=1000) #psi_leaf[i]
+   slope_demand[i,j] <- sperry_cond(psi_1[i,j])
+  
+   loss_fun_sp_gs[i,j] <- slope_demand[i,j] / max_slo_sp[j] 
+   #reg_leaf_psi[i,j] <- predawn_soil_mat_pot[j] + ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])
+   if(i==1) reg_leaf_psi[i,j] <- ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])
+      
+   if(i>1)
+   {
+     reg_leaf_psi[i,j] <- pmax(reg_leaf_psi[i-1,j], ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j]))
+   }
+    
+   ffx <- integrate(sperry_cond, 0, psi_1[i,j] )
+   non_regulated_trans[i,j] <- pmax(0, ffx$value)
+   non_regulated_Gs[i,j] <- non_regulated_trans[i,j]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+  # 
+   ffx <- integrate(sperry_cond, 0, reg_leaf_psi[i,j] )
+   regulated_trans[i,j] <- pmax(0, ffx$value)
+   regulated_Gs[i,j] <- regulated_trans[i,j]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+   G[i,j] <- G[i,j]*loss_fun_sp_gs[i,j]
+  
+  }
+}
+
+kss <- which(reg_leaf_psi==max(reg_leaf_psi))
+reg_leaf_psi_new <- reg_leaf_psi
+reg_leaf_psi_new[kss:length(reg_leaf_psi_new)] <- max(reg_leaf_psi)
 
 for(i in 1:1000)
 {
-#  demandx[i] <- cum_can_transportx[i,1]
-  psi_1[i] <- psi_leaf[i]
-  slope_demand[i] <- sperry_cond(psi_1[i])
-  loss_fun_sp_gs[i] <- slope_demand[i] / max_slo_sp 
-  reg_leaf_psi[i] <- 0 + ((psi_1[i] - 0)*loss_fun_sp_gs[i])
-
-  ffx <- integrate(sperry_cond, 0, psi_1[i] )
-  non_regulated_trans[i] <- pmax(0, ffx$value)
-  non_regulated_Gs[i] <- non_regulated_trans[i]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
   
-  ffx <- integrate(sperry_cond, 0, reg_leaf_psi[i] )
-  regulated_trans[i] <- pmax(0, ffx$value)
-  regulated_Gs[i] <- regulated_trans[i]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
-  # G[i] <- G[i]*loss_function_sperry[i]
-  
+ffx <- integrate(sperry_cond, 0, reg_leaf_psi_new[i] )
+regulated_trans_trap[i] <- pmax(0, ffx$value)
+regulated_Gs_trap[i] <- regulated_trans_trap[i]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+# G[i] <- G[i]*loss_function_sperry[i]
 }
 
  plot(psi_1, (1-slope_demand/slope_demand[1])*100, type ="l", lwd=1)
  lines(psi_1, (1-regulated_Gs/non_regulated_Gs)*100, col="red")
+ lines(psi_1, (1-regulated_Gs_trap/non_regulated_Gs)*100, col="red")
  lines(psi_1, (1-regulated_Gs/Gmax)*100, col="red")
  
+ plot(psi_1, (1-slope_demand/slope_demand[1])*100, type ="l", lwd=1)
+ lines(psi_1, (1-regulated_Gs_trap/non_regulated_Gs)*100, col="red")
+ lines(psi_1, (1-regulated_Gs_trap/Gmax)*100, col="red")
  
 ### 
 cum_can_transport_Gs <- rep(0, length=1000)
@@ -234,18 +274,6 @@ for(i in 1:5)
 
 
 
-## surrogate to get derivitive of the transpiration rate
-e_can2 <- expression(( x - psi_soil )*((1 - (1 / (1 + exp(2.0*(3 - x)))))) / res )
-D(D(e_can2, 'x'),'x') # need to manually copy this derivitive - cant find a way to automate it.
-d_de_can2 <- function(x) {(((1 - (1/(1 + exp(2 * (3 - x)))))) - (x - psi_soil) * (exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2))/res}
-##dd_ecan2 <- function(x) {-((exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2 + ((exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2) - (x - psi_soil) * (exp(2 * (3 - x)) * 2 * 2/(1 + exp(2 * (3 - x)))^2 - exp(2 * (3 - x)) * 2 * (2 * (exp(2 * (3 - x)) * 2 * (1 + exp(2 * (3 - x)))))/((1 + exp(2 * (3 - x)))^2)^2)))/res)}
-psi_max_slope <- uniroot(d_de_can2, c(0, 5))$root # find the leaf matric potential which yields the highest transpiraiton rate
-
-for(i in 1:1000)
-{
-  ff <- integrate(e_can, 0, psi_leaf[i] )
-  cum_can_transport[i] <- ff$value
-}
 
 ##------------------------------------------------------------------------------------------------------------------------------------------
 ##------------------------------------------------------------------------------------------------------------------------------------------
@@ -265,6 +293,20 @@ for(i in 1:1000)
 ##------------------------------------------------------------------------------------------------------------------------------------------
 ## Can't work out how Sperry's Gs declines faster than conductance.......
 
+cum_can_transport <- rep(0, length=1000)
+
+## surrogate to get derivitive of the transpiration rate
+e_can2 <- expression(( x - psi_soil )*((1 - (1 / (1 + exp(2.0*(3 - x)))))) / res )
+D(D(e_can2, 'x'),'x') # need to manually copy this derivitive - cant find a way to automate it.
+d_de_can2 <- function(x) {(((1 - (1/(1 + exp(2 * (3 - x)))))) - (x - psi_soil) * (exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2))/res}
+##dd_ecan2 <- function(x) {-((exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2 + ((exp(2 * (3 - x)) * 2/(1 + exp(2 * (3 - x)))^2) - (x - psi_soil) * (exp(2 * (3 - x)) * 2 * 2/(1 + exp(2 * (3 - x)))^2 - exp(2 * (3 - x)) * 2 * (2 * (exp(2 * (3 - x)) * 2 * (1 + exp(2 * (3 - x)))))/((1 + exp(2 * (3 - x)))^2)^2)))/res)}
+psi_max_slope <- uniroot(d_de_can2, c(0, 5))$root # find the leaf matric potential which yields the highest transpiraiton rate
+
+for(i in 1:1000)
+{
+  ff <- integrate(e_can, 0, psi_leaf[i] )
+  cum_can_transport[i] <- ff$value
+}
 
 cond_max_slope <- max(conductance(psi_leaf)) #(Sperry's )
 
@@ -278,7 +320,7 @@ demand_met_at <- psi_leaf[demand_met_at[1]]
 demand_met_at_slope <- conductance(demand_met_at)
 loss_function <- demand_met_at_slope / cond_max_slope
 
-demand_new <- demand * loss_function
+demand_new <- evap_demand * loss_function
 
 ##--------------------------------------------------------------------------------
 # Calculation of regulated stomatal conductance - these two are equivalent
@@ -286,7 +328,7 @@ demand_new <- demand * loss_function
 G <- G*loss_function
 
 ##------------------------------------------------------------------------------------------------------------------------------------------
-
+library(plotrix)
 conductance <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(3 - x))))))
 y_int_cum <- function(x){ integrate(e_can, 0, x )$value - (e_can(x)*x)} # the y-intersept for the tangent
 #abline(y_int_cum(2), e_can(2)) # the slope of the tangent is the transpiration rate (e_can)

@@ -168,6 +168,10 @@ We then calculate the matric potential where evaporative demand is met
 \hlstd{regulated_transpiration} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlstd{regulated_leaf_psi} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 
+\hlcom{# this max regulation seems to be }
+\hlcom{#regulated_leaf_psi_max <- matrix(0,0,nrow=1000, ncol=5)}
+\hlcom{#for}
+
 \hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{5}\hlstd{)}
   \hlstd{\{}
     \hlcom{# positions on transport curve where supply can meet demand}
@@ -210,15 +214,14 @@ We then calculate the matric potential where evaporative demand is met
 
 From Sperry (2016) "Mathematically, ΔP rises to a maximum before decreasing back to zero as E 0 increases to Ecrit. This decline in ΔP is unrealis- tic (Saliendra et al., 1995), so it is assumed that ΔP saturates at its maximum as E 0 increases. Eqn 5 expresses the outcome that xylem pressure is regulated in proportion to the damage caused by taking no action. (4) The regulated E corresponding to ΔP is determined from the supply function. (5) The G is solved from E/D to determine how much it is reduced below Gmax. The model does not partition G into stomatal vs boundary layer com- ponents, but G is controlled by stomatal regulation. Cuticular water loss is assumed to be zero." I was unsure what Sperry ment with $\Delta P$ saturates however examining Fig.1B one can see the regulated response is too extreme. Plotting the regulated leaf matric potential against the demand defined matiric reveals that the regulated leaf matric potential reaches a maximum and then decreases (Fig.2). 
 
-\begin{centering}
-\begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
+%begin{centering}
+%<<fig.width=16, echo=FALSE, fig.height=8, ,fig.cap="\\label{fig:figs}Regulated leaf matric potential against the demand defined matiric potential.">>==
+%par(mfrow=c(1,1), mar=c(7,8,4,1))
+%plot(psi_canopy, regulated_leaf_psi[,1], type="l", ylab="Delta P ", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
+%text(4.5, 7.8,"(A)", cex=2)
 
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in regulated\_leaf\_psi[, 1]: incorrect number of dimensions}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in text.default(4.5, 7.8, "{}(A)"{}, cex = 2): plot.new has not been called yet}}\end{kframe}
-\end{knitrout}
+%@
 \end{centering}
 
 

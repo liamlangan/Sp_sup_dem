@@ -83,7 +83,8 @@ Below are parameters for the vulnerability-conductance curve,
 \hlcom{# Maximum stomatal conductance}
 \hlstd{Gmax} \hlkwb{<-} \hlnum{12563.1} \hlcom{# (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)}
 \hlstd{G} \hlkwb{<-} \hlkwd{rep}\hlstd{(Gmax,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{VPD} \hlkwb{<-} \hlnum{0.5}\hlopt{*}\hlnum{0.001}   \hlcom{# (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
+\hlcom{#VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
+\hlstd{VPD} \hlkwb{<-} \hlnum{1.5}\hlopt{*}\hlnum{0.001}   \hlcom{# (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
 \hlcom{# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes sense and produces realistic}
 \hlcom{# amounts of transpirtational demand. }
 \hlcom{#evap_demand <- G*VPD}
@@ -207,6 +208,18 @@ We then calculate the matric potential where evaporative demand is met
 %\caption{Plot of 1:10 and a bar plot beside it in a figure that is 4x6 inches}
 %\end(figure)
 
+From Sperry (2016) "Mathematically, ΔP rises to a maximum before decreasing back to zero as E 0 increases to Ecrit. This decline in ΔP is unrealis- tic (Saliendra et al., 1995), so it is assumed that ΔP saturates at its maximum as E 0 increases. Eqn 5 expresses the outcome that xylem pressure is regulated in proportion to the damage caused by taking no action. (4) The regulated E corresponding to ΔP is determined from the supply function. (5) The G is solved from E/D to determine how much it is reduced below Gmax. The model does not partition G into stomatal vs boundary layer com- ponents, but G is controlled by stomatal regulation. Cuticular water loss is assumed to be zero." I was unsure what Sperry ment with $\Delta P$ saturates however examining Fig.1B one can see the regulated response is too extreme. Plotting the regulated leaf matric potential against the demand defined matiric reveals that the regulated leaf matric potential reaches a maximum and then decreases (Fig.2). 
+
+\begin{centering}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in regulated\_leaf\_psi[, 1]: incorrect number of dimensions}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in text.default(4.5, 7.8, "{}(A)"{}, cex = 2): plot.new has not been called yet}}\end{kframe}
+\end{knitrout}
+\end{centering}
 
 
 \end{document}

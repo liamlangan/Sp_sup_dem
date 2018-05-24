@@ -40,7 +40,7 @@ sum_e <- e_can(psi_leaf)
 sperry_cond <- function(psi_leaf) { ((1 - (1 / (1 + exp(3.0*(2.5 - psi_leaf)))))) / res }
 #cum_can_transportx <- rep(0, length=1000)
 cum_can_transportx <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
-predawn_soil_mat_pot <- seq(0,2, by=0.5) # this assumes initial plant matric potential is the same as the soil matric potential
+predawn_soil_mat_pot <- seq(0,4, length=5) # this assumes initial plant matric potential is the same as the soil matric potential
 
 for(j in 1:length(predawn_soil_mat_pot))
   {
@@ -68,7 +68,7 @@ for(i in 1:length(predawn_soil_mat_pot))
 ## make transpiration demand
 Gmax <- 12563.1 # (Sperry 2016, 2130 kg h^-1 m^-2) NOTE it should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)
 G <- rep(Gmax, length=5)
-VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) NOTE in Sperry 2016 this is 1 which is crazy, in the Excel script it is 100
+VPD <- 1.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) NOTE in Sperry 2016 this is 1 which is crazy, in the Excel script it is 100
 #evap_demand <- G*VPD
 
 # need to define an Pcrit, i.e. a matric potential we choose wheere we decide conductance is effectively zero. We use this to get Ecrit, i.e. maximum transpiration beyond which leads to runaway cavitation  
@@ -92,6 +92,7 @@ demand_met_at_slope_sperry <- rep(0, length=5)
 loss_function_sperry <- rep(0, length=5)
 regulated_transpiration <- rep(0, length=5)
 regulated_leaf_psi <- rep(0, length=5)
+regulated_leaf_psi1 <- rep(0, length=5)
 
 for(i in 1:5)
   {
@@ -100,7 +101,8 @@ for(i in 1:5)
     demand_met_at_slope_sperry[i] <- sperry_cond(psi_demand_met_at_sperry[i])
     loss_function_sperry[i] <- demand_met_at_slope_sperry[i] / cond_max_slope_sperry 
     regulated_leaf_psi[i] <- predawn_soil_mat_pot[i] + ((psi_demand_met_at_sperry[i] - predawn_soil_mat_pot[i])*loss_function_sperry[i])
-
+    regulated_leaf_psi1[i] <- ((psi_demand_met_at_sperry[i] - predawn_soil_mat_pot[i])*loss_function_sperry[i])
+    
     ffx <- integrate(sperry_cond, predawn_soil_mat_pot[i], regulated_leaf_psi[i] )
     regulated_transpiration[i] <- pmax(0, ffx$value)
     G[i] <- G[i]*loss_function_sperry[i]

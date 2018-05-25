@@ -33,7 +33,7 @@ p50 <- 2.5 # the matric potential where conductance is reduced by 50%
 K_max <- 8 # maximum plant conductance - this is a trait in aDGVM2
 res <- 1/K_max # resistance is simply the inverse of conductance
 psi_canopy <- seq(0.0, 5, length=1000) 
-predawn_soil_mat_pot <- seq(0,2, length=5) # this assumes initial plant matric potential is the same as the soil matric potential
+predawn_soil_mat_pot <- seq(0,3, length=5) # this assumes initial plant matric potential is the same as the soil matric potential
 cum_can_transport <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
 
 ## make transpiration demand --------------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ cum_can_transport <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
 Gmax <- 12563.1 # (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)
 G <- rep(Gmax, length=5)
 #VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) 
-VPD <- 1.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) 
+VPD <- 6.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) 
 # NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes sense and produces realistic
 # amounts of transpirtational demand. 
 #evap_demand <- G*VPD
@@ -162,11 +162,11 @@ for(j in 1:5)
     
    ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], psi_1[i,j] )
    non_regulated_trans[i,j] <- pmax(0, ffx$value)
-   non_regulated_Gs[i,j] <- non_regulated_trans[i,j]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+   non_regulated_Gs[i,j] <- non_regulated_trans[i,j]/VPD # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
   # 
    ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], predawn_soil_mat_pot[j] + reg_leaf_psi[i,j] )
    regulated_trans[i,j] <- pmax(0, ffx$value)
-   regulated_Gs[i,j] <- regulated_trans[i,j]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+   regulated_Gs[i,j] <- regulated_trans[i,j]/VPD # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
    G[i,j] <- G[i,j]*loss_fun_sp_gs[i,j]
   
   }
@@ -174,13 +174,17 @@ for(j in 1:5)
  
 demand_place_holder <- rep(0, length=5)
 supply_place_holder <- rep(0, length=5)
+min_diff_place_holder <- rep(0, length=5)
 
 for(i in 1:5)
 {
     a <-which(non_regulated_trans[,i] >= evap_demand[i])
     demand_place_holder[i] <-a[1]
     
-    min_diff <- 
+    min_diff <- regulated_trans[,i] - non_regulated_trans[demand_place_holder[i]]
+    min_diff_max <- which(min_diff == max(min_diff))
+    min_diff_place_holder[i] <- min_diff_max[1] 
+    
     b <-which(regulated_trans[,i] <=  non_regulated_trans[demand_place_holder[i]])
     supply_place_holder[i] <-b[length(b)]
     
@@ -273,14 +277,29 @@ for(i in 1:5)
 
 %\begin(figure)
 \begin{centering}
-<<fig.width=16, echo=FALSE, fig.height=8, ,fig.cap="\\label{fig:figs}Hydraulic conductance and transpitation as a function of sap xylem pressure.">>==
-par(mfrow=c(1,1), mar=c(7,8,4,1))
+<<fig.width=16, echo=FALSE, fig.height=16, ,fig.cap="\\label{fig:figs}Hydraulic conductance and transpitation as a function of sap xylem pressure.">>==
+par(mfrow=c(2,2), mar=c(7,8,4,1))
 plot(psi_1[,1], non_regulated_trans[,1], ylim=c(0, 25), type="l", ylab="Transpiration rate E (kg hr^1 m^2)", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
-points(psi_1[demand_place_holder[1],1], non_regulated_trans[demand_place_holder[1],1], type="p", cex=0.9, pch=19, col="black")
-points(psi_1[demand_place_holder[1],1], regulated_trans[demand_place_holder[1],1], type="p", cex=1.6, pch=21, col="red", lwd=2)
-# lines(psi_canopy, cum_can_transport[,2], lwd=2)
-# points(psi_demand_met_at_sperry[2], evap_demand[2], type="p", cex=0.9, pch=19, col="black")
-# points(regulated_leaf_psi[2], regulated_transpiration[2], type="p", cex=1.6, pch=21, col="red", lwd=2)
+
+points(psi_1[demand_place_holder[1],1], non_regulated_trans[demand_place_holder[1],1], type="p", cex=1.6, pch=19, col="black")
+points(reg_leaf_psi[min_diff_place_holder[1],1], regulated_trans[min_diff_place_holder[1],1], type="p", cex=1.8, pch=21, col="red", lwd=3)
+
+lines(psi_1[,2], non_regulated_trans[,2], lwd=2)
+points(psi_1[demand_place_holder[2],2], non_regulated_trans[demand_place_holder[2],2], type="p", cex=1.6, pch=19, col="black")
+points(predawn_soil_mat_pot[2] + reg_leaf_psi[min_diff_place_holder[2],2], regulated_trans[min_diff_place_holder[2],2], type="p", cex=1.8, pch=21, col="red", lwd=3)
+
+lines(psi_1[,3], non_regulated_trans[,3], lwd=2)
+points(psi_1[demand_place_holder[3],3], non_regulated_trans[demand_place_holder[3],3], type="p", cex=1.6, pch=19, col="black")
+points(predawn_soil_mat_pot[3] + reg_leaf_psi[min_diff_place_holder[3],3], regulated_trans[min_diff_place_holder[3],3], type="p", cex=1.8, pch=21, col="red", lwd=3)
+
+lines(psi_1[,4], non_regulated_trans[,4], lwd=2)
+points(psi_1[demand_place_holder[4],4], non_regulated_trans[demand_place_holder[4],4], type="p", cex=1.6, pch=19, col="black")
+points(predawn_soil_mat_pot[4] + reg_leaf_psi[min_diff_place_holder[4],4], regulated_trans[min_diff_place_holder[4],4], type="p", cex=1.8, pch=21, col="red", lwd=3)
+
+lines(psi_1[,5], non_regulated_trans[,5], lwd=2)
+points(psi_1[demand_place_holder[5],5], non_regulated_trans[demand_place_holder[5],5], type="p", cex=1.6, pch=19, col="black")
+points(predawn_soil_mat_pot[5] + reg_leaf_psi[min_diff_place_holder[5],5], regulated_trans[min_diff_place_holder[5],5], type="p", cex=1.8, pch=21, col="red", lwd=3)
+
 # lines(psi_canopy, cum_can_transport[,3], lwd=2)
 # points(psi_demand_met_at_sperry[3], evap_demand[3], type="p", cex=0.9, pch=19, col="black")
 # points(regulated_leaf_psi[3], regulated_transpiration[3], type="p", cex=1.6, pch=21, col="red", lwd=2)
@@ -291,7 +310,20 @@ points(psi_1[demand_place_holder[1],1], regulated_trans[demand_place_holder[1],1
 # points(psi_demand_met_at_sperry[5], evap_demand[5], type="p", cex=0.9, pch=19, col="black")
 # points(regulated_leaf_psi[5], regulated_transpiration[5], type="p", cex=1.6, pch=21, col="red", lwd=2)
 legend("topleft", c("unregulated transpiration & leaf psi","regulated transpiration & leaf psi","p50=2.5"), col=c("black", "red", "white"), pch = 1, cex=1.5, lwd=2, bty="n")
-text(4.5, 24.5,"(B)", cex=2)
+text(4.5, 24.5,"(A)", cex=2)
+
+ plot(non_regulated_trans[,1], regulated_trans[,1], lwd=4, col="black", type="l", cex.lab=2.0, cex.axis=2.0, ylab="Regulated transpiration rate", xlab="Unregulated transpiration rate")
+lines(non_regulated_trans[,2], regulated_trans[,2], lwd=4, col="azure4", lty=1)
+lines(non_regulated_trans[,3], regulated_trans[,3], lwd=4, col="azure4", lty=1)
+lines(non_regulated_trans[,4], regulated_trans[,4], lwd=4, col="azure4", lty=1)
+lines(non_regulated_trans[,5], regulated_trans[,5], lwd=4, col="azure4", lty=1)
+text(0.5, 12.5,"(B)", cex=2)
+
+ plot(psi_1[,1], (1- regulated_Gs[,1]/non_regulated_Gs[,1])*100, lwd=4, col="black", type="l", cex.lab=2.0, cex.axis=2.0, ylim=c(0,100), xlab="Sap pressure (-MPa)", , ylab="regulated Gs / unregulated Gs")
+lines(psi_1[,2], (1- regulated_Gs[,2]/non_regulated_Gs[,2])*100, lwd=4, col="azure4", lty=1)
+lines(psi_1[,3], (1- regulated_Gs[,3]/non_regulated_Gs[,3])*100, lwd=4, col="azure4", lty=1)
+lines(psi_1[,4], (1- regulated_Gs[,4]/non_regulated_Gs[,4])*100, lwd=4, col="azure4", lty=1)
+lines(psi_1[,5], (1- regulated_Gs[,5]/non_regulated_Gs[,5])*100, lwd=4, col="azure4", lty=1)
 
 @
 \end{centering}

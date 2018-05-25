@@ -75,8 +75,8 @@ Below are parameters for the vulnerability-conductance curve,
 \hlstd{p50} \hlkwb{<-} \hlnum{2.5} \hlcom{# the matric potential where conductance is reduced by 50%}
 \hlstd{K_max} \hlkwb{<-} \hlnum{8} \hlcom{# maximum plant conductance - this is a trait in aDGVM2}
 \hlstd{res} \hlkwb{<-} \hlnum{1}\hlopt{/}\hlstd{K_max} \hlcom{# resistance is simply the inverse of conductance}
-\hlstd{psi_canopy} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0.0}\hlstd{,} \hlnum{5}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
-\hlstd{predawn_soil_mat_pot} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{2}\hlstd{,} \hlkwc{by}\hlstd{=}\hlnum{0.5}\hlstd{)} \hlcom{# initial plant matric potential = soil matric potential}
+\hlstd{psi_canopy} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0.0}\hlstd{,} \hlnum{8}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
+\hlstd{predawn_soil_mat_pot} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{3}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# this assumes initial plant matric potential is the same as the soil matric potential}
 \hlstd{cum_can_transport} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# this is the supply function}
 
 \hlcom{## make transpiration demand --------------------------------------------------------------------------------------------}
@@ -84,14 +84,14 @@ Below are parameters for the vulnerability-conductance curve,
 \hlstd{Gmax} \hlkwb{<-} \hlnum{12563.1} \hlcom{# (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)}
 \hlstd{G} \hlkwb{<-} \hlkwd{rep}\hlstd{(Gmax,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlcom{#VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
-\hlstd{VPD} \hlkwb{<-} \hlnum{1.5}\hlopt{*}\hlnum{0.001}   \hlcom{# (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
+\hlstd{VPD} \hlkwb{<-} \hlnum{0.5}\hlopt{*}\hlnum{0.001}   \hlcom{# (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) }
 \hlcom{# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes sense and produces realistic}
 \hlcom{# amounts of transpirtational demand. }
 \hlcom{#evap_demand <- G*VPD}
 
 \hlcom{# need to define an Pcrit, i.e. a matric potential we choose where we decide conductance is effectively zero. }
 \hlcom{# We use this to get Ecrit, i.e. maximum transpiration beyond which leads to runaway cavitation  }
-\hlstd{P_crit} \hlkwb{<-} \hlnum{4} \hlcom{# MPa - this is arbitrary and could be a plant trait. }
+\hlstd{P_crit} \hlkwb{<-} \hlnum{6} \hlcom{# MPa - this is arbitrary and could be a plant trait. }
 \hlcom{# In Sperry (2016) a P_crit cutoff is chosen (either very low conductance or }
 \hlcom{# shallow slope of a tangent to the transpiration curve)}
 
@@ -171,6 +171,8 @@ We then calculate the matric potential where evaporative demand is met
 \hlcom{##---------------------------------------------------------------------------------------------------------------------}
 \hlcom{##---------------------------------------------------------------------------------------------------------------------}
 \hlcom{## max regulation is the point where delta P hits its maximum, it should be held at max once passed.}
+\hlstd{G} \hlkwb{<-} \hlkwd{matrix}\hlstd{(Gmax, Gmax, ,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
+
 \hlstd{psi_1} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}\hlcom{#}
 \hlstd{slope_demand} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlstd{loss_fun_sp_gs} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
@@ -184,8 +186,6 @@ We then calculate the matric potential where evaporative demand is met
 
 \hlstd{non_regulated_trans} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlstd{non_regulated_Gs} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
-
-\hlcom{#max_slo_sp <- sperry_cond(0) }
 
 \hlstd{max_slo_sp} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 
@@ -201,6 +201,10 @@ We then calculate the matric potential where evaporative demand is met
    \hlstd{psi_1[,j]} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwd{max}\hlstd{(psi_canopy),} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)} \hlcom{#psi_leaf[i]}
    \hlstd{slope_demand[i,j]} \hlkwb{<-} \hlkwd{sperry_cond}\hlstd{(psi_1[i,j])}
 
+   \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(sperry_cond, predawn_soil_mat_pot[j], psi_1[i,j] )}
+   \hlstd{non_regulated_trans[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
+   \hlstd{non_regulated_Gs[i,j]} \hlkwb{<-} \hlstd{non_regulated_trans[i,j]}\hlopt{/}\hlstd{VPD} \hlcom{# E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)}
+
    \hlstd{loss_fun_sp_gs[i,j]} \hlkwb{<-} \hlstd{slope_demand[i,j]} \hlopt{/} \hlstd{max_slo_sp[j]}
    \hlcom{#reg_leaf_psi[i,j] <- predawn_soil_mat_pot[j] + ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])}
    \hlkwa{if}\hlstd{(i}\hlopt{==}\hlnum{1}\hlstd{) reg_leaf_psi[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ((psi_1[i,j]} \hlopt{-} \hlstd{predawn_soil_mat_pot[j])}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j]))}
@@ -209,125 +213,50 @@ We then calculate the matric potential where evaporative demand is met
    \hlstd{\{}
      \hlstd{reg_leaf_psi[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwd{pmax}\hlstd{(reg_leaf_psi[i}\hlopt{-}\hlnum{1}\hlstd{,j], ((psi_1[i,j]} \hlopt{-} \hlstd{predawn_soil_mat_pot[j])}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j])))}
    \hlstd{\}}
+
+  \hlcom{# }
+   \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(sperry_cond, predawn_soil_mat_pot[j], predawn_soil_mat_pot[j]} \hlopt{+} \hlstd{reg_leaf_psi[i,j] )}
+   \hlstd{regulated_trans[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
+   \hlstd{regulated_Gs[i,j]} \hlkwb{<-} \hlstd{regulated_trans[i,j]}\hlopt{/}\hlstd{VPD} \hlcom{# E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)}
+   \hlstd{G[i,j]} \hlkwb{<-} \hlstd{G[i,j]}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j]}
+
   \hlstd{\}}
 \hlstd{\}}
 
-\hlstd{holder_4_max} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{holder_psi_max_threshold} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{max_leaf_regulation} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{demand_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{supply_limit_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{min_diff_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{supply_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 
-\hlcom{##---------------------------------------------------------------------------------------------------------------------}
-\hlcom{##---------------------------------------------------------------------------------------------------------------------}
-\hlcom{##---------------------------------------------------------------------------------------------------------------------}
 
 \hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{5}\hlstd{)}
-  \hlstd{\{}
-    \hlstd{holder_4_max[i]} \hlkwb{<-} \hlkwd{which}\hlstd{(reg_leaf_psi[,i]}\hlopt{==}\hlkwd{max}\hlstd{(reg_leaf_psi[,i]))}
-    \hlstd{holder_psi_max_threshold[i]} \hlkwb{<-} \hlstd{psi_1[holder_4_max[i]]}
-    \hlstd{max_leaf_regulation[i]} \hlkwb{<-} \hlkwd{max}\hlstd{(reg_leaf_psi[,i])}
-    \hlkwd{print}\hlstd{(}\hlstr{"--------------------------------"}\hlstd{)}
-    \hlkwd{print}\hlstd{(}\hlstr{"i"}\hlstd{)}
-    \hlkwd{print}\hlstd{(i)}
-    \hlkwd{print}\hlstd{(}\hlstr{"max_leaf_regulation[i]"}\hlstd{)}
-    \hlkwd{print}\hlstd{(max_leaf_regulation[i])}
+\hlstd{\{}
+    \hlstd{a} \hlkwb{<-}\hlkwd{which}\hlstd{(non_regulated_trans[,i]} \hlopt{>=} \hlstd{evap_demand[i])}
+    \hlstd{demand_place_holder[i]} \hlkwb{<-}\hlstd{a[}\hlnum{2}\hlstd{]}
 
-    \hlkwd{print}\hlstd{(}\hlstr{"holder_psi_max_threshold[i]"}\hlstd{)}
-    \hlkwd{print}\hlstd{(holder_psi_max_threshold[i])}
+    \hlstd{min_diff} \hlkwb{<-} \hlstd{regulated_trans[,i]} \hlopt{-} \hlstd{non_regulated_trans[demand_place_holder[i]]}
+    \hlstd{min_diff_max} \hlkwb{<-} \hlkwd{which}\hlstd{(min_diff} \hlopt{==} \hlkwd{max}\hlstd{(min_diff))}
+    \hlstd{supply_limit_place_holder[i]} \hlkwb{<-} \hlstd{min_diff_max[}\hlnum{1}\hlstd{]}
 
-    \hlcom{# positions on transport curve where supply can meet demand}
-    \hlcom{# this throws a warning but returns the first number which is what I want}
-    \hlstd{demand_met_at_sperry[i]} \hlkwb{<-} \hlkwd{which}\hlstd{(cum_can_transport[,i]} \hlopt{>=} \hlstd{evap_demand[i])}
-    \hlcom{# the matric potential where demand is met}
-    \hlstd{psi_demand_met_at_sperry[i]} \hlkwb{<-} \hlstd{psi_canopy[demand_met_at_sperry[i]]}
-    \hlkwd{print}\hlstd{(}\hlstr{"psi_demand_met_at_sperry[i]"}\hlstd{)}
-    \hlkwd{print}\hlstd{(psi_demand_met_at_sperry[i])}
-
-    \hlkwa{if}\hlstd{(psi_demand_met_at_sperry[i]} \hlopt{<} \hlstd{holder_psi_max_threshold[i])}
-    \hlstd{\{}
-    \hlcom{# slope of tangent to supply/conductance curve where demand is met}
-    \hlstd{demand_met_at_slope_sperry[i]} \hlkwb{<-} \hlkwd{sperry_cond}\hlstd{(psi_demand_met_at_sperry[i])}
-    \hlcom{# this is sperrys loss function (slope where demand is met / max slope)}
-    \hlstd{loss_function_sperry[i]} \hlkwb{<-} \hlstd{demand_met_at_slope_sperry[i]} \hlopt{/} \hlstd{cond_max_slope_sperry}
-    \hlcom{# this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)}
-    \hlstd{regulated_leaf_psi[i]} \hlkwb{<-} \hlstd{predawn_soil_mat_pot[i]} \hlopt{+} \hlstd{((psi_demand_met_at_sperry[i]} \hlopt{-} \hlstd{predawn_soil_mat_pot[i])}\hlopt{*}\hlstd{loss_function_sperry[i])}
-    \hlcom{# this is the adjusted leaf matric potential dP = dP' * (demand_met_at_slope_sperry / cond_max_slope_sperry)}
-    \hlcom{# dP' = predawn_matric_potential - unregulated_matric_potential, this doesn't work unless dP is added to predawn matric potential}
-    \hlstd{\}}
-
-    \hlkwa{if}\hlstd{(psi_demand_met_at_sperry[i]} \hlopt{<} \hlstd{holder_psi_max_threshold[i])}
-    \hlstd{\{}
-      \hlstd{regulated_leaf_psi[i]} \hlkwb{<-}  \hlstd{max_leaf_regulation[i]}
-    \hlstd{\}}
-
-    \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(sperry_cond,} \hlnum{0}\hlstd{, regulated_leaf_psi[i] )}
-    \hlstd{regulated_transpiration[i]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)} \hlcom{# regulated transpiration (E in Sperry)}
-
-    \hlcom{# G[i] <- G[i]*loss_function_sperry[i] # regulated stomatal conductance}
-    \hlcom{# E = G * VPD so G = E/VPD}
-
-  \hlstd{\}}
+    \hlstd{abs_min_diff} \hlkwb{<-} \hlkwd{abs}\hlstd{(min_diff)}
+    \hlstd{abs_min_diff} \hlkwb{<-} \hlkwd{which}\hlstd{(abs_min_diff} \hlopt{==} \hlkwd{min}\hlstd{(abs_min_diff))}
+    \hlstd{supply_place_holder[i]} \hlkwb{<-} \hlstd{abs_min_diff[}\hlnum{1}\hlstd{]}
+\hlstd{\}}
 \end{alltt}
-\begin{verbatim}
-## [1] "--------------------------------"
-## [1] "i"
-## [1] 1
-## [1] "max_leaf_regulation[i]"
-## [1] 1.637212
-## [1] "holder_psi_max_threshold[i]"
-## [1] 1.971972
-## [1] "psi_demand_met_at_sperry[i]"
-## [1] 2.707708
-## [1] "--------------------------------"
-## [1] "i"
-## [1] 2
-## [1] "max_leaf_regulation[i]"
-## [1] 1.234192
-## [1] "holder_psi_max_threshold[i]"
-## [1] 2.062062
-## [1] "psi_demand_met_at_sperry[i]"
-## [1] 4.004004
-## [1] "--------------------------------"
-## [1] "i"
-## [1] 3
-## [1] "max_leaf_regulation[i]"
-## [1] 0.862811
-## [1] "holder_psi_max_threshold[i]"
-## [1] 2.187187
-## [1] "psi_demand_met_at_sperry[i]"
-## [1] 4.004004
-## [1] "--------------------------------"
-## [1] "i"
-## [1] 4
-## [1] "max_leaf_regulation[i]"
-## [1] 0.5448904
-## [1] "holder_psi_max_threshold[i]"
-## [1] 2.352352
-## [1] "psi_demand_met_at_sperry[i]"
-## [1] 4.004004
-## [1] "--------------------------------"
-## [1] "i"
-## [1] 5
-## [1] "max_leaf_regulation[i]"
-## [1] 0.3124062
-## [1] "holder_psi_max_threshold[i]"
-## [1] 2.587588
-## [1] "psi_demand_met_at_sperry[i]"
-## [1] 4.004004
-\end{verbatim}
 \end{kframe}
 \end{knitrout}
-
 
 %\begin(figure)
 \begin{centering}
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-\includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-1} \caption{\label{fig:figs}Hydraulic conductance and transpitation as a function of sap xylem pressure.}\label{fig:unnamed-chunk-10}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-10-1} \caption{\label{fig:figs}(A) Unregulated and regulated transpiration with supply demand limit. Where curves intersect the x-axis indicate the predawn/soil matric potential. (B) Regulated vs unregulated transpiration. the differing curves represent the responses for the differing predawn/soil matric potentials in (A). (C) Loss of stomatal conductance NOTE I haven't worked out how Sperry is producing his Fig.4 in Sperry and Love (2015). The differing curves correspond to the differing predawn/soil matric potentials in (A). (D) percentage loss of conductance.}\label{fig:unnamed-chunk-10}
 \end{figure}
 
 
 \end{knitrout}
 \end{centering}
+
 %\caption{Plot of 1:10 and a bar plot beside it in a figure that is 4x6 inches}
 %\end(figure)
 
@@ -341,7 +270,7 @@ From Sperry (2016) "Mathematically, ΔP rises to a maximum before decreasing bac
 %text(4.5, 7.8,"(A)", cex=2)
 
 %@
-\end{centering}
+%\end{centering}
 
 
 \end{document}

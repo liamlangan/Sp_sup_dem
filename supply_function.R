@@ -201,11 +201,11 @@ for(j in 1:5)
      reg_leaf_psi[i,j] <- pmax(0, pmax(reg_leaf_psi[i-1,j], ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])))
    }
     
-   ffx <- integrate(sperry_cond, 0, psi_1[i,j] )
+   ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], psi_1[i,j] )
    non_regulated_trans[i,j] <- pmax(0, ffx$value)
    non_regulated_Gs[i,j] <- non_regulated_trans[i,j]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
   # 
-   ffx <- integrate(sperry_cond, 0, reg_leaf_psi[i,j] )
+   ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], predawn_soil_mat_pot[j] + reg_leaf_psi[i,j] )
    regulated_trans[i,j] <- pmax(0, ffx$value)
    regulated_Gs[i,j] <- regulated_trans[i,j]/0.001 # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
    G[i,j] <- G[i,j]*loss_fun_sp_gs[i,j]

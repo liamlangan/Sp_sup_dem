@@ -25,7 +25,10 @@ library(knitr);
 mycol=c("green","blue","purple","red")
 @
 \section{Introduction}
-Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function ($E_{p-canopy}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere, i.e. potential transpiration. Transpiration is influenced by xylem pressure ($\psi_{xylem}$), hydraulic conductivity of the plant ($K_{plant}$), the hydraulic conductivity of the soil $K_{soil}$ and the rate at which hydraulic conductivity is reduced as xylem pressure increases or soil conductivity decreases.   
+Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function (transpirationrate) ($E$) (kg hr$^{-1}$ m$^{-2}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere, i.e. potential transpiration. Transpiration ($E$) is influenced by the canopy sap pressure $P_{canopy}$ (MPa) via changes to the hydraulic conductance of the plant ($k$) (kg hr$^{-1}$ MPa$^{-1}$ m$^{-2}$). Hydraulic conductance of the plant ($k$) is the conductance when there is no difference in matric potential between the soil and the leaf  
+
+
+sap pressure $P$ (MPa) ,  , , the hydraulic conductivity of the soil $K_{soil}$ and the rate at which hydraulic conductivity is reduced as xylem pressure increases or soil conductivity decreases.   
 
 Below are parameters for the vulnerability-conductance curve,
 <<>>==

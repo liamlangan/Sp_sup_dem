@@ -25,32 +25,30 @@ library(knitr);
 mycol=c("green","blue","purple","red")
 @
 \section{Introduction}
-Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function (transpirationrate) ($E$) (kg hr$^{-1}$ m$^{-2}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere, i.e. potential transpiration. Transpiration ($E$) is influenced by the canopy sap pressure $P_{canopy}$ (MPa) via changes to the hydraulic conductance of the plant ($k$) (kg hr$^{-1}$ MPa$^{-1}$ m$^{-2}$). Hydraulic conductance of the plant ($k$) is the conductance when there is no difference in matric potential between the soil and the leaf  
-
-
-sap pressure $P$ (MPa) ,  , , the hydraulic conductivity of the soil $K_{soil}$ and the rate at which hydraulic conductivity is reduced as xylem pressure increases or soil conductivity decreases.   
+Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function (transpiration rate) ($E$) (kg hr$^{-1}$ m$^{-2}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere. Transpiration ($E$) is influenced by the canopy sap pressure (p_canopy) (MPa) via changes to the hydraulic conductance of the plant ($k$) (kg hr$^{-1}$ MPa$^{-1}$ m$^{-2}$). Hydraulic conductance of the plant ($k$) is the conductance when there is no difference in matric potential between the soil and the leaf.  
 
 Below are parameters for the vulnerability-conductance curve,
 <<>>==
 p50 <- 2.5 # the matric potential where conductance is reduced by 50%
-K_max <- 8 # maximum plant conductance - this is a trait in aDGVM2
-res <- 1/K_max # resistance is simply the inverse of conductance
-psi_canopy <- seq(0.0, 8, length=1000) 
-predawn_soil_mat_pot <- seq(0,3, length=5) # this assumes initial plant matric potential is the same as the soil matric potential
-cum_can_transport <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
+k_max <- 8 # maximum plant conductance - this is a trait in aDGVM2
+res <- 1/k_max # resistance is simply the inverse of conductance
+p_canopy <- seq(0.0, 8, length=1000) 
+# this assumes initial plant matric potential is the same as the soil matric potential
+predawn_soil_mat_pot <- seq(0,3, length=5) 
+E_p_canopy <- matrix(0,0,nrow=1000, ncol=5) # this is the supply function
 
-## make transpiration demand --------------------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------------------------
+## make transpiration demand --------------------------------------------------------------------
 # Maximum stomatal conductance
-Gmax <- 12563.1 # (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)
+# (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)
+Gmax <- 12563.1 
 G <- rep(Gmax, length=5)
-#VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) 
-VPD <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa) (0.001 converts to MPa) 
-# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes sense and produces realistic
-# amounts of transpirtational demand. 
-#evap_demand <- G*VPD
+D <- 0.5*0.001   # (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa)(0.001 converts to MPa) 
+# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes 
+# sense and produces realistic amounts of transpirtational demand. 
 
-# need to define an Pcrit, i.e. a matric potential we choose where we decide conductance is effectively zero. 
-# We use this to get Ecrit, i.e. maximum transpiration beyond which leads to runaway cavitation  
+# Pcrit, i.e. a matric potential we choose where we decide conductance is effectively zero. 
+# Used this to get Ecrit, i.e. maximum transpiration beyond which leads to runaway cavitation  
 P_crit <- 6 # MPa - this is arbitrary and could be a plant trait. 
 # In Sperry (2016) a P_crit cutoff is chosen (either very low conductance or 
 # shallow slope of a tangent to the transpiration curve)
@@ -58,20 +56,20 @@ P_crit <- 6 # MPa - this is arbitrary and could be a plant trait.
 # get maximum transpiration possible based on Pcrit and soil matric potential 
 E_crit <- rep(0, lenght=5) # maximum transpiration beyond which leads to runaway cavitation
 evap_demand <- rep(0, lenght=5) # evaporative demand
-
 @
+
 with the the conductance vulnerability curve we use in aDGVM2, which is analagous to Sperry's curve, defined as:
 <<>>==
-sperry_cond <- function(psi_canopy) { ((1 - (1 / (1 + exp(3.0*(p50 - psi_canopy)))))) / res }
+k_p_canopy <- function(p_canopy) { ((1 - (1 / (1 + exp(3.0*(p50 - p_canopy)))))) / res }
 @
-The transpiration rate is the integral of the vulnerability-conductance curve between any the soil (pre-dawn) matric potential and ($p-canopy$)(canopy sap pressure) and is calculated as follows: 
+The transpiration rate is the integral of the vulnerability-conductance curve between the soil (pre-dawn) matric potential and (p_canopy) and is calculated as follows: 
 <<>>==
 for(j in 1:length(predawn_soil_mat_pot))
   {
     for(i in 1:1000)
       {
-        ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], psi_canopy[i] )
-        cum_can_transport[i,j] <- pmax(0, ffx$value)
+        ffx <- integrate(k_p_canopy, predawn_soil_mat_pot[j], p_canopy[i] )
+        E_p_canopy[i,j] <- pmax(0, ffx$value)
       }
 }
 @
@@ -80,8 +78,8 @@ for(j in 1:length(predawn_soil_mat_pot))
 << echo=FALSE >>==
 for(l in 1:length(predawn_soil_mat_pot)) # this just removes the zeros from the curves 
 {
-  kop <- which(cum_can_transport[,l] == 0)
-  cum_can_transport[kop,l] <- NA
+  kop <- which(E_p_canopy[,l] == 0)
+  E_p_canopy[kop,l] <- NA
 }
 
 @
@@ -90,7 +88,7 @@ Here we get the slope of the line which is tangent to the tanspiration curve at 
 cond_max_slope_sperry <- rep(0, lenght=5) # get the maximum slope of conductance given pre-dawn water potential
 for(i in 1:length(predawn_soil_mat_pot))
   {
-    cond_max_slope_sperry[i] <-  sperry_cond(predawn_soil_mat_pot[i]) 
+    cond_max_slope_sperry[i] <-  k_p_canopy(predawn_soil_mat_pot[i]) 
     # for Sperry the maximum conductance is always the pre-dawn matric potential/soil matric potential 
   }
 @
@@ -99,9 +97,9 @@ We calculate the maximum transpiration beyond which leads to runaway cavitation 
 <<>>==
 for(j in 1:5)
   {
-    ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], P_crit )
+    ffx <- integrate(k_p_canopy, predawn_soil_mat_pot[j], P_crit )
     E_crit[j] <- pmax(0, ffx$value)
-    evap_demand[j] <- G[j]*VPD
+    evap_demand[j] <- G[j]*D
     if(evap_demand[j] > E_crit[j]) evap_demand[j] <- E_crit[j] # demand can't be greater than maximum supply
   }
 @
@@ -137,21 +135,19 @@ non_regulated_Gs <- matrix(0,0,nrow=1000, ncol=5)
 
 max_slo_sp <- rep(0, length=5)
 
-for(j in 1:5) 
-{
-  max_slo_sp[j] <- sperry_cond(predawn_soil_mat_pot[j])
-}
-
 for(j in 1:5)
 {
+  
+  max_slo_sp[j] <- k_p_canopy(predawn_soil_mat_pot[j])
+
   for(i in 1:1000)
   {
-   psi_1[,j] <- seq(0, max(psi_canopy), length=1000) #psi_leaf[i]
-   slope_demand[i,j] <- sperry_cond(psi_1[i,j])
+   psi_1[,j] <- seq(0, max(p_canopy), length=1000) #psi_leaf[i]
+   slope_demand[i,j] <- k_p_canopy(psi_1[i,j])
   
-   ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], psi_1[i,j] )
+   ffx <- integrate(k_p_canopy, predawn_soil_mat_pot[j], psi_1[i,j] )
    non_regulated_trans[i,j] <- pmax(0, ffx$value)
-   non_regulated_Gs[i,j] <- non_regulated_trans[i,j]/VPD # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+   non_regulated_Gs[i,j] <- non_regulated_trans[i,j]/D # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
 
    loss_fun_sp_gs[i,j] <- slope_demand[i,j] / max_slo_sp[j] 
    #reg_leaf_psi[i,j] <- predawn_soil_mat_pot[j] + ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])
@@ -163,9 +159,9 @@ for(j in 1:5)
    }
     
   # 
-   ffx <- integrate(sperry_cond, predawn_soil_mat_pot[j], predawn_soil_mat_pot[j] + reg_leaf_psi[i,j] )
+   ffx <- integrate(k_p_canopy, predawn_soil_mat_pot[j], predawn_soil_mat_pot[j] + reg_leaf_psi[i,j] )
    regulated_trans[i,j] <- pmax(0, ffx$value)
-   regulated_Gs[i,j] <- regulated_trans[i,j]/VPD # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
+   regulated_Gs[i,j] <- regulated_trans[i,j]/D # E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)
    G[i,j] <- G[i,j]*loss_fun_sp_gs[i,j]
   
   }

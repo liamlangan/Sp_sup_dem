@@ -66,19 +66,20 @@
 
 
 \section{Introduction}
-Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function (transpiration rate) ($E$) (kg hr$^{-1}$ m$^{-2}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere. Transpiration ($E$) is influenced by the canopy sap pressure (p_canopy) (MPa) via changes to the hydraulic conductance of the plant ($k$) (kg hr$^{-1}$ MPa$^{-1}$ m$^{-2}$). Hydraulic conductance of the plant ($k$) is the conductance when there is no difference in matric potential between the soil and the leaf.  
+Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function (transpiration rate) ($E$) (kg hr$^{-1}$ m$^{-2}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere. Transpiration ($E$) is influenced by the canopy sap pressure (p\_canopy) (MPa) via changes to the hydraulic conductance of the plant ($k$) (kg hr$^{-1}$ MPa$^{-1}$ m$^{-2}$). Hydraulic conductance of the plant ($k$) is the conductance when there is no difference in matric potential between the soil and the leaf.  
 
 Below are parameters for the vulnerability-conductance curve,
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
+\hlcom{##-----------------------------------------------------------------------------------------------}
 \hlstd{p50} \hlkwb{<-} \hlnum{2.5} \hlcom{# the matric potential where conductance is reduced by 50%}
 \hlstd{k_max} \hlkwb{<-} \hlnum{8} \hlcom{# maximum plant conductance - this is a trait in aDGVM2}
 \hlstd{res} \hlkwb{<-} \hlnum{1}\hlopt{/}\hlstd{k_max} \hlcom{# resistance is simply the inverse of conductance}
 \hlstd{p_canopy} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0.0}\hlstd{,} \hlnum{8}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
 \hlcom{# this assumes initial plant matric potential is the same as the soil matric potential}
 \hlstd{predawn_soil_mat_pot} \hlkwb{<-} \hlkwd{seq}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{3}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{E_p_canopy} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# this is the supply function}
+\hlstd{E_p_canopy} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# matrix to hold the supply function values}
 
 \hlcom{##-----------------------------------------------------------------------------------------------}
 \hlcom{## make transpiration demand --------------------------------------------------------------------}
@@ -86,7 +87,7 @@ Below are parameters for the vulnerability-conductance curve,
 \hlcom{# (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)}
 \hlstd{Gmax} \hlkwb{<-} \hlnum{12563.1}
 \hlstd{G} \hlkwb{<-} \hlkwd{rep}\hlstd{(Gmax,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{D} \hlkwb{<-} \hlnum{0.5}\hlopt{*}\hlnum{0.001}   \hlcom{# (Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa)(0.001 converts to MPa) }
+\hlstd{D} \hlkwb{<-} \hlnum{0.5}\hlopt{*}\hlnum{0.001} \hlcom{#(Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa)(0.001 converts to MPa) }
 \hlcom{# NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes }
 \hlcom{# sense and produces realistic amounts of transpirtational demand. }
 
@@ -111,49 +112,22 @@ with the the conductance vulnerability curve we use in aDGVM2, which is analagou
 \end{alltt}
 \end{kframe}
 \end{knitrout}
-The transpiration rate is the integral of the vulnerability-conductance curve between the soil (pre-dawn) matric potential and (p_canopy) and is calculated as follows: 
-\begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
-\begin{alltt}
-\hlkwa{for}\hlstd{(j} \hlkwa{in} \hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(predawn_soil_mat_pot))}
-  \hlstd{\{}
-    \hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{1000}\hlstd{)}
-      \hlstd{\{}
-        \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(k_p_canopy, predawn_soil_mat_pot[j], p_canopy[i] )}
-        \hlstd{E_p_canopy[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
-      \hlstd{\}}
-\hlstd{\}}
-\end{alltt}
-\end{kframe}
-\end{knitrout}
-
-
+The transpiration rate is the integral of the vulnerability-conductance curve between the soil (pre-dawn) matric potential and (p\_canopy) and is calculated as follows: 
 
 Here we get the slope of the line which is tangent to the tanspiration curve at any particulat water potential. This slope is the conductance at this water potential. 
-\begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
-\begin{alltt}
-\hlstd{cond_max_slope_sperry} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{lenght}\hlstd{=}\hlnum{5}\hlstd{)} \hlcom{# get the maximum slope of conductance given pre-dawn water potential}
-\hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlkwd{length}\hlstd{(predawn_soil_mat_pot))}
-  \hlstd{\{}
-    \hlstd{cond_max_slope_sperry[i]} \hlkwb{<-}  \hlkwd{k_p_canopy}\hlstd{(predawn_soil_mat_pot[i])}
-    \hlcom{# for Sperry the maximum conductance is always the pre-dawn matric potential/soil matric potential }
-  \hlstd{\}}
-\end{alltt}
-\end{kframe}
-\end{knitrout}
 
 We calculate the maximum transpiration beyond which leads to runaway cavitation $E_{crit}$ based on a matric potential we choose where we decide conductance is effectively zero $P_{crit}$. 
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
+\hlcom{##-----------------------------------------------------------------------------------------------}
 \hlkwa{for}\hlstd{(j} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{5}\hlstd{)}
-  \hlstd{\{}
-    \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(k_p_canopy, predawn_soil_mat_pot[j], P_crit )}
-    \hlstd{E_crit[j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
-    \hlstd{evap_demand[j]} \hlkwb{<-} \hlstd{G[j]}\hlopt{*}\hlstd{D}
-    \hlkwa{if}\hlstd{(evap_demand[j]} \hlopt{>} \hlstd{E_crit[j]) evap_demand[j]} \hlkwb{<-} \hlstd{E_crit[j]} \hlcom{# demand can't be greater than maximum supply}
-  \hlstd{\}}
+\hlstd{\{}
+  \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(k_p_canopy, predawn_soil_mat_pot[j], P_crit )}
+  \hlstd{E_crit[j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
+  \hlstd{evap_demand[j]} \hlkwb{<-} \hlstd{G[j]}\hlopt{*}\hlstd{D}
+  \hlkwa{if}\hlstd{(evap_demand[j]} \hlopt{>} \hlstd{E_crit[j]) evap_demand[j]} \hlkwb{<-} \hlstd{E_crit[j]} \hlcom{# demand = maximum supply}
+\hlstd{\}}
 \end{alltt}
 \end{kframe}
 \end{knitrout}
@@ -170,9 +144,10 @@ We then calculate the matric potential where evaporative demand is met
 \hlstd{regulated_transpiration} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlstd{regulated_leaf_psi} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
 
-\hlcom{##---------------------------------------------------------------------------------------------------------------------}
-\hlcom{##---------------------------------------------------------------------------------------------------------------------}
-\hlcom{## max regulation is the point where delta P hits its maximum, it should be held at max once passed.}
+\hlcom{##-----------------------------------------------------------------------------------------------}
+\hlcom{##-----------------------------------------------------------------------------------------------}
+
+\hlcom{#max regulation is the point where delta P hits its maximum, held constant at max once max passed}
 \hlstd{G} \hlkwb{<-} \hlkwd{matrix}\hlstd{(Gmax, Gmax, ,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 
 \hlstd{psi_1} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}\hlcom{#}
@@ -183,10 +158,6 @@ We then calculate the matric potential where evaporative demand is met
 \hlstd{regulated_trans} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlstd{regulated_Gs} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 
-\hlstd{regulated_trans_trap} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{regulated_Gs_trap} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
-
-\hlstd{non_regulated_trans} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 \hlstd{non_regulated_Gs} \hlkwb{<-} \hlkwd{matrix}\hlstd{(}\hlnum{0}\hlstd{,}\hlnum{0}\hlstd{,}\hlkwc{nrow}\hlstd{=}\hlnum{1000}\hlstd{,} \hlkwc{ncol}\hlstd{=}\hlnum{5}\hlstd{)}
 
 \hlstd{max_slo_sp} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
@@ -202,24 +173,26 @@ We then calculate the matric potential where evaporative demand is met
    \hlstd{slope_demand[i,j]} \hlkwb{<-} \hlkwd{k_p_canopy}\hlstd{(psi_1[i,j])}
 
    \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(k_p_canopy, predawn_soil_mat_pot[j], psi_1[i,j] )}
-   \hlstd{non_regulated_trans[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
-   \hlstd{non_regulated_Gs[i,j]} \hlkwb{<-} \hlstd{non_regulated_trans[i,j]}\hlopt{/}\hlstd{D} \hlcom{# E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)}
+   \hlstd{E_p_canopy[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
+   \hlstd{non_regulated_Gs[i,j]} \hlkwb{<-} \hlstd{E_p_canopy[i,j]}\hlopt{/}\hlstd{D}
+   \hlcom{# E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)}
 
    \hlstd{loss_fun_sp_gs[i,j]} \hlkwb{<-} \hlstd{slope_demand[i,j]} \hlopt{/} \hlstd{max_slo_sp[j]}
-   \hlcom{#reg_leaf_psi[i,j] <- predawn_soil_mat_pot[j] + ((psi_1[i,j] - predawn_soil_mat_pot[j])*loss_fun_sp_gs[i,j])}
-   \hlkwa{if}\hlstd{(i}\hlopt{==}\hlnum{1}\hlstd{) reg_leaf_psi[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ((psi_1[i,j]} \hlopt{-} \hlstd{predawn_soil_mat_pot[j])}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j]))}
+
+   \hlkwa{if}\hlstd{(i}\hlopt{==}\hlnum{1}\hlstd{) reg_leaf_psi[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ((psi_1[i,j]} \hlopt{-} \hlstd{predawn_soil_mat_pot[j])}
+                                          \hlopt{*}\hlstd{loss_fun_sp_gs[i,j]))}
 
    \hlkwa{if}\hlstd{(i}\hlopt{>}\hlnum{1}\hlstd{)}
    \hlstd{\{}
-     \hlstd{reg_leaf_psi[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwd{pmax}\hlstd{(reg_leaf_psi[i}\hlopt{-}\hlnum{1}\hlstd{,j], ((psi_1[i,j]} \hlopt{-} \hlstd{predawn_soil_mat_pot[j])}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j])))}
+     \hlstd{reg_leaf_psi[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwd{pmax}\hlstd{(reg_leaf_psi[i}\hlopt{-}\hlnum{1}\hlstd{,j],}
+                                  \hlstd{((psi_1[i,j]} \hlopt{-} \hlstd{predawn_soil_mat_pot[j])}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j])))}
    \hlstd{\}}
 
-  \hlcom{# }
-   \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(k_p_canopy, predawn_soil_mat_pot[j], predawn_soil_mat_pot[j]} \hlopt{+} \hlstd{reg_leaf_psi[i,j] )}
+   \hlstd{ffx} \hlkwb{<-} \hlkwd{integrate}\hlstd{(k_p_canopy, predawn_soil_mat_pot[j],}
+                    \hlstd{predawn_soil_mat_pot[j]} \hlopt{+} \hlstd{reg_leaf_psi[i,j])}
    \hlstd{regulated_trans[i,j]} \hlkwb{<-} \hlkwd{pmax}\hlstd{(}\hlnum{0}\hlstd{, ffx}\hlopt{$}\hlstd{value)}
-   \hlstd{regulated_Gs[i,j]} \hlkwb{<-} \hlstd{regulated_trans[i,j]}\hlopt{/}\hlstd{D} \hlcom{# E = G*VPD ---- G = E/VPD (VPD=1, 0.001 transforms to MPa)}
+   \hlstd{regulated_Gs[i,j]} \hlkwb{<-} \hlstd{regulated_trans[i,j]}\hlopt{/}\hlstd{D} \hlcom{# E=G*D -- G=E/D (D=1, 0.001 transforms to MPa)}
    \hlstd{G[i,j]} \hlkwb{<-} \hlstd{G[i,j]}\hlopt{*}\hlstd{loss_fun_sp_gs[i,j]}
-
   \hlstd{\}}
 \hlstd{\}}
 
@@ -231,10 +204,10 @@ We then calculate the matric potential where evaporative demand is met
 
 \hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{5}\hlstd{)}
 \hlstd{\{}
-    \hlstd{a} \hlkwb{<-}\hlkwd{which}\hlstd{(non_regulated_trans[,i]} \hlopt{>=} \hlstd{evap_demand[i])}
+    \hlstd{a} \hlkwb{<-}\hlkwd{which}\hlstd{(E_p_canopy[,i]} \hlopt{>=} \hlstd{evap_demand[i])}
     \hlstd{demand_place_holder[i]} \hlkwb{<-}\hlstd{a[}\hlnum{2}\hlstd{]}
 
-    \hlstd{min_diff} \hlkwb{<-} \hlstd{regulated_trans[,i]} \hlopt{-} \hlstd{non_regulated_trans[demand_place_holder[i]]}
+    \hlstd{min_diff} \hlkwb{<-} \hlstd{regulated_trans[,i]} \hlopt{-} \hlstd{E_p_canopy[demand_place_holder[i]]}
     \hlstd{min_diff_max} \hlkwb{<-} \hlkwd{which}\hlstd{(min_diff} \hlopt{==} \hlkwd{max}\hlstd{(min_diff))}
     \hlstd{supply_limit_place_holder[i]} \hlkwb{<-} \hlstd{min_diff_max[}\hlnum{1}\hlstd{]}
 
@@ -249,54 +222,11 @@ We then calculate the matric potential where evaporative demand is met
 %\begin(figure)
 \begin{centering}
 \begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+\includegraphics[width=\maxwidth]{figure/unnamed-chunk-7-1} \caption{\label{fig:figs}(A) Unregulated and regulated transpiration with supply demand limit. Where curves intersect the x-axis indicate the predawn/soil matric potential. (B) Regulated vs unregulated transpiration. the differing curves represent the responses for the differing predawn/soil matric potentials in (A). (C) Loss of stomatal conductance NOTE I haven't worked out how Sperry is producing his Fig.4 in Sperry and Love (2015). The differing curves correspond to the differing predawn/soil matric potentials in (A). (D) percentage loss of conductance.}\label{fig:unnamed-chunk-7}
+\end{figure}
 
 
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in p\_canopy[, 1]: incorrect number of dimensions}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot.xy(xy.coords(x, y), type = type, ...): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in strwidth(legend, units = "{}user"{}, cex = cex, font = text.font): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in text.default(7.5, 24.5, "{}(A)"{}, cex = 2): plot.new has not been called yet}}
-
-{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in plot(psi\_canopy, (1 - sperry\_cond(psi\_canopy)/sperry\_cond(0)) * : object 'psi\_canopy' not found}}\end{kframe}
 \end{knitrout}
 \end{centering}
 

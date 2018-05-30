@@ -184,12 +184,12 @@ E1 = Gmax * D
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
-\hlstd{demand_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{supply_limit_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{min_diff_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
-\hlstd{supply_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{5}\hlstd{)}
+\hlstd{demand_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
+\hlstd{supply_limit_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
+\hlstd{min_diff_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
+\hlstd{supply_place_holder} \hlkwb{<-} \hlkwd{rep}\hlstd{(}\hlnum{0}\hlstd{,} \hlkwc{length}\hlstd{=}\hlnum{1000}\hlstd{)}
 
-\hlkwa{for}\hlstd{(i} \hlkwa{in} \hlkwd{c}\hlstd{(}\hlnum{1}\hlstd{,}\hlnum{100}\hlstd{,}\hlnum{200}\hlstd{,}\hlnum{400}\hlstd{,}\hlnum{600}\hlstd{))}
+\hlkwa{for}\hlstd{(i} \hlkwa{in} \hlnum{1}\hlopt{:}\hlnum{1000}\hlstd{)}
 \hlstd{\{}
     \hlstd{a} \hlkwb{<-}\hlkwd{which}\hlstd{(E_p_canopy[,i]} \hlopt{>=} \hlstd{E1[i])}
     \hlstd{demand_place_holder[i]} \hlkwb{<-}\hlstd{a[}\hlnum{2}\hlstd{]}

@@ -55,7 +55,7 @@ E1 = Gmax * D
 # Maximum stomatal conductance
 # (Sperry 2016, 2130 kg h^-1 m^-2) NOTE should be (kg h^-1 MPa^-1 m^-2) (12563.1 in Excel doc)
 Gmax <- 12563.1 
-D <- 0.5*0.001 #(Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa)(0.001 converts to MPa) 
+D <- 1.0*0.001 #(Sperry 2016, leaf-to-air vapor pressure deficit 1 kPa)(0.001 converts to MPa) 
 # NOTE VPD converstion from kPa to MPa isn't documented in Sperry, I'm doing it as it makes 
 # sense and produces realistic amounts of transpirtational demand. 
 
@@ -80,7 +80,6 @@ for(j in 1:1000)
   if(E1[j] > E_crit[j]) E1[j] <- E_crit[j] # demand = maximum supply
 }
 @
-\noindent Sperry's loss function (loss\_fun\_sp) is simply the slope of the tangent to the supply curve line (which is the value of $k\_p\_canopy$) at any particular matric potential (slope\_supply), divided by the maximum slope (max\_slo\_sp). In Sperry's model this is at the predawn matric potential (predawn\_soil\_mat\_pot).   
 
 <<warning=FALSE, include=F>>==
 G                          <- matrix(Gmax, Gmax, ,nrow=1000, ncol=1000)
@@ -92,6 +91,7 @@ regulated_Gs               <- matrix(0,0,nrow=1000, ncol=1000)
 non_regulated_Gs           <- matrix(0,0,nrow=1000, ncol=1000)
 max_slo_sp                 <- rep(0, length=1000)
 @ 
+The following code calculates the maximum slope of the supply function from ($k\_p\_canopy$) across a range of predawn soil matric potentials. The slope of the supply function ($slope\_supply$) is calculated between for a range of between the predawn matric potentials and $p\_canopy$. The supply function ($E\_p\_canopy$) is the integral between the predawn soil matric potential and p\_canopy, this is performed for 1000 levels of predawn matric potential and p\_canopy, both (0-8 MPa). Non regulated stomatal/diffusive conductance ($non_regulated_Gs$) is simply the supply function divided by the vapor pressure defecit $D$. Sperry's loss function (loss\_fun\_sp) is simply the slope of the tangent to the supply curve line (which is the value of $k\_p\_canopy$) at any particular matric potential (slope\_supply), divided by the maximum slope (max\_slo\_sp). In Sperry's model this is at the predawn matric potential (predawn\_soil\_mat\_pot). The amount by which leaf pressure is adjusted ($delta\_P$) is calcualted as the difference between $p\_canopy$ and the predawn soil matric potential times the loss function. ($delta\_P$) is held at its maximum value once the maximum value is passed, this is the trick I was missing when Sperry writes about $delta\_P$ saturating. Regulated transpiration or a regulated supply function $regulated\_trans$ is calcualted as the integral of $k\_p\_canopy$ between the predawn matric potential and the predawn matric potential plus $delta\_P$. Regulated stomatal/diffusive conductance is then calcualted by dividing $regulated\_trans$ by the vapor pressure defecit $D$.      
 
 <<>>==
 for(j in 1:1000)
@@ -103,6 +103,7 @@ for(j in 1:1000)
   {
    slope_supply[i,j] <- k_p_canopy(pmax(predawn_soil_mat_pot[j], p_canopy[i]))
   
+   # half of these ingegrations are not necessary as predawn>=p_canopy
    ffx <- integrate(k_p_canopy, predawn_soil_mat_pot[j], p_canopy[i] )
    E_p_canopy[i,j] <- pmax(0, ffx$value)
    non_regulated_Gs[i,j] <- E_p_canopy[i,j]/D 
@@ -119,18 +120,19 @@ for(j in 1:1000)
      delta_P[i,j] <- pmax(0, pmax(delta_P[i-1,j], 
                               ((p_canopy[i] - predawn_soil_mat_pot[j])*loss_fun_sp[i,j])))
    }
-    
+
+   # half of these ingegrations are not necessary as delta_P will be zero
    ffx <- integrate(k_p_canopy, predawn_soil_mat_pot[j], 
                     predawn_soil_mat_pot[j] + delta_P[i,j])
    regulated_trans[i,j] <- pmax(0, ffx$value)
    regulated_Gs[i,j] <- regulated_trans[i,j]/D # E=G*D -- G=E/D (D=1, 0.001 transforms to MPa)
-   G[i,j] <- G[i,j]*loss_fun_sp[i,j]
+#   G[i,j] <- G[i,j]*loss_fun_sp[i,j]
   }
 }
  
 
 @
-
+\noindent The below code finds the the first position in the $E\_p\_canopy$ dataset where supply is greater than or equal to demand.  
 <<>>==
 demand_place_holder <- rep(0, length=1000)
 supply_limit_place_holder <- rep(0, length=1000)
@@ -170,7 +172,7 @@ points(predawn_soil_mat_pot[50] + delta_P[demand_place_holder[50],50], regulated
 
 lines(p_canopy[,3], E_p_canopy[,100], lwd=2)
 points(p_canopy[demand_place_holder[100],100], E_p_canopy[demand_place_holder[100],100], type="p", cex=1.6, pch=19, col="black")
-points(predawn_soil_mat_pot[100] + delta_P[supply_limit_place_holder[3],100], regulated_trans[supply_limit_place_holder[3],100], type="p", cex=1.8, pch=21, col="red", lwd=3)
+points(predawn_soil_mat_pot[100] + delta_P[supply_limit_place_holder[100],100], regulated_trans[supply_limit_place_holder[100],100], type="p", cex=1.8, pch=21, col="red", lwd=3)
 points(predawn_soil_mat_pot[100] + delta_P[demand_place_holder[100],100], regulated_trans[demand_place_holder[100],100], type="p", cex=2.8, pch=21, col="blue", lwd=3)
 
 lines(p_canopy[,4], E_p_canopy[,150], lwd=2)
@@ -204,15 +206,11 @@ lines(E_p_canopy[,150], regulated_trans[,150], lwd=4, col="azure4", lty=1)
 lines(E_p_canopy[,200], regulated_trans[,200], lwd=4, col="azure4", lty=1)
 text(0.5, 12.5,"(B)", cex=2)
 
- plot(p_canopy[,1], (1- regulated_Gs[,1]/non_regulated_Gs[,1])*100, lwd=4, col="black", type="l", cex.lab=2.0, cex.axis=2.0, ylim=c(0,100), xlab="Sap pressure (-MPa)", , ylab="% loss of Gs")
-lines(p_canopy[,2], (1- regulated_Gs[,50]/non_regulated_Gs[,50])*100, lwd=4, col="azure4", lty=1)
-lines(p_canopy[,3], (1- regulated_Gs[,100]/non_regulated_Gs[,100])*100, lwd=4, col="azure4", lty=1)
-lines(p_canopy[,4], (1- regulated_Gs[,150]/non_regulated_Gs[,150])*100, lwd=4, col="azure4", lty=1)
-lines(p_canopy[,5], (1- regulated_Gs[,200]/non_regulated_Gs[,200])*100, lwd=4, col="azure4", lty=1)
-text(0.1, 100,"(C)", cex=2)
+ plot(predawn_soil_mat_pot, (1- regulated_Gs[1000,]/max(regulated_Gs[1000,1]))*100, lwd=4, col="black", type="l", cex.lab=2.0, cex.axis=2.0, ylim=c(0,100), xlab="Predawn sap pressure, P (-MPa)", , ylab="% loss of conductance (k) and stomatal conductance (Gs)")
+lines(predawn_soil_mat_pot, (1 - k_p_canopy(p_canopy[,1])/k_p_canopy(0))*100, type="l", ylab="% loss of conductance", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5, col="red")
+legend("bottomright", c("% loss diffusive conductance","% loss canopy hydraulic conductance", "D=0.5"), col=c("black", "red", "white"), lty=c(1,1,1), cex=1.5, lwd=2, bty="n")
 
-plot(p_canopy[,1], (1 - k_p_canopy(p_canopy[,1])/k_p_canopy(0))*100, type="l", ylab="% loss of conductance", xlab="Sap pressure (-MPa)", cex.lab=2.0, cex.axis=2.0,lwd=2.5)
-text(0.1, 100,"(D)", cex=2)
+ text(0.1, 100,"(C)", cex=2)
 
 @
 \end{centering}
@@ -220,8 +218,21 @@ text(0.1, 100,"(D)", cex=2)
 %\caption{Plot of 1:10 and a bar plot beside it in a figure that is 4x6 inches}
 %\end(figure)
 
-From Sperry (2016) "Mathematically, ΔP rises to a maximum before decreasing back to zero as E 0 increases to Ecrit. This decline in ΔP is unrealis- tic (Saliendra et al., 1995), so it is assumed that ΔP saturates at its maximum as E 0 increases. Eqn 5 expresses the outcome that xylem pressure is regulated in proportion to the damage caused by taking no action. (4) The regulated E corresponding to ΔP is determined from the supply function. (5) The G is solved from E/D to determine how much it is reduced below Gmax. The model does not partition G into stomatal vs boundary layer com- ponents, but G is controlled by stomatal regulation. Cuticular water loss is assumed to be zero." I was unsure what Sperry ment with $\Delta P$ saturates however examining Fig.1B one can see the regulated response is too extreme. Plotting the regulated leaf matric potential against the demand defined matiric reveals that the regulated leaf matric potential reaches a maximum and then decreases. Fixing the regulated leaf matric potential to its maximum value once it has passed this value solves this issue. The next issue to solve is how sperry is calculating his percentage loss of stomatal conductance.  
+<<echo=FALSE, include=F>>==
+# I just wanted to plot the matrices quickly 
+# poop <- E_p_canopy 
+# testie <- which(E_p_canopy[]>0)
+# poop[testie] <- 1
+# testie1 <- which(E_p_canopy[]<0)
+# poop[testie1] <- -1
+# 
+# poop1 <- regulated_trans 
+# testie1 <- which(regulated_trans[]>0)
+# poop1[testie1] <- 1
+# testie2 <- which(regulated_trans[]<0)
+# poop1[testie2] <- -1
 
+@
 
 %begin{centering}
 %<<fig.width=16, echo=FALSE, fig.height=8, ,fig.cap="\\label{fig:figs}Regulated leaf matric potential against the demand defined matiric potential.">>==
@@ -231,7 +242,6 @@ From Sperry (2016) "Mathematically, ΔP rises to a maximum before decreasing bac
 
 %@
 %\end{centering}
-
 
 \end{document}
 

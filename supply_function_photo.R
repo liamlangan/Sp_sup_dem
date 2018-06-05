@@ -1,5 +1,55 @@
+library(plantecophys)
+
+# seq_Ci <- seq(5,600, length=101)
+# aci <- AciC4(seq_Ci)
+# #plot(seq_Ci, aci$ALEAF)
+# with(aci, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
+
+p50 <- 2.5
+K_max <- 8
+res <- 1/K_max
+conductance1 <- function(p50,x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 - x))))))
 
 
+gs_seq <- seq(0.001, 1, length=100)
+gctogw <- 1.57  # conversion
+Ca <- 400
+gc <- gs / gctogw  # stomatal conductance to CO2
+
+photo1 <- Photosyn( GS=gs_seq, Ca=Ca )
+#aci_1 <- Aci(Ci=photo1$Ci, Ca=Ca) # A-ci calculates transpiration
+Evapo <- photo1$ELEAF
+
+# leaf matric potential is something like
+psi_leaf <- function(psi_soil,E, conductance1) { psi_soil - (E*(1/conductance1)) }
+
+
+
+
+
+
+# NOTE: I can't find an easy way to calculate leaf temperaute easily. We have it in ADGVM though. 
+plot(photo1$GS, photo1$ALEAF)
+
+
+par(yaxs="i")
+#with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
+with(photo1, points(Ci, ALEAF, pch=19, col="red"))
+abline(gc * Ca, -gc, lty=5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
 e_can <- function(psi_leaf, psi_soil, res, gi) { ( psi_leaf - psi_soil )*gi / res }
 gi <- function(psi_leaf, p50) { 1 - (1 / (1 + exp(5.0*(p50 - psi_leaf))))  }
 
@@ -21,6 +71,10 @@ for(i in 1:length(sum_e))
 
 ## conductance here is assuming the soil matric potential is 0. 
 conductance <- function(x) (8*(1 - (1 / (1 + exp(2.0*(3 - x))))))
+conductance1 <- function(x) (1*(1 - (1 / (1 + exp(2.0*(3 - x))))))
+
+plot(psi_leaf, pmax(0.0, (conductance(0) - conductance(psi_leaf))/conductance(0)) )
+lines(psi_leaf, pmax(0.0, (conductance1(0) - conductance1(psi_leaf))/conductance1(0)), col="red", lwd=2 )
 
 p50 <- 0.5
 K_max <- 8

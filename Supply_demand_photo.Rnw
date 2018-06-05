@@ -21,14 +21,37 @@ Sys.setenv(TEXINPUTS=getwd(),
 \maketitle
 
 <<echo=FALSE, warning=FALSE>>=
-library(knitr);
+library(knitr)
+library(simecol)
 mycol=c("green","blue","purple","red")
 @
 \section{Introduction}
 Sperry and Love (2015 (What plant hydraulics can tell us about responses to climate-change droughts)) developed a model where a supply function (transpiration rate) ($E$) (kg hr$^{-1}$ m$^{-2}$) is derived which calculates the potential rate/amount of water able to be supplied from the soil to the atmosphere. Transpiration ($E$) is influenced by the canopy sap pressure (p\_canopy) (MPa) via changes to the hydraulic conductance of the plant ($k$) (kg hr$^{-1}$ MPa$^{-1}$ m$^{-2}$). Hydraulic conductance of the plant ($k$) is the conductance when there is no difference in matric potential between the soil and the leaf.  
 
+The code below is from the Sperry et al. (2017) model which regulates stomata so that profit is maximised. Here $theta\_Pc$ is a cost function that indicates the fractional loss of canopy hydraulic conductance. The function goes from zero at no loss of conductance to 1 at hydraulic failure ($k\_crit$).  
+<<>>==
+# In Sperry et al. (2017) (Predicting stomatal responses to the environment from the 
+# optimization of photosynthetic gain and hydraulic cost)
+# k_crit is set to 5% of k_max.
+# k_max is then called k_c_max which is the maximum conductance for a given matric potential (c).
+##-----------------------------------------------------------------------------------------------
+# cost function
+# this function rises from zero at a 
+# P = pressure (matric potential)
+# Pc = pressure canopy
+# kc_max = maximum conductance at a given pressure (c)
+# kc_Pc = conductance at a given Pc
+theta_Pc <- (kc_max - kc_Pc)/ (kc_max - k_crit)
+
+##-----------------------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------------------------
+@
+
 Below are parameters for the vulnerability-conductance curve:
 <<>>==
+##-----------------------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------------------------
 ##-----------------------------------------------------------------------------------------------
 p50 <- 2.5 # the matric potential where conductance is reduced by 50% (trait aDGVM2)
 k_max <- 8 # maximum plant conductance - (fn of p50)

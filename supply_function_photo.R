@@ -5,24 +5,62 @@ library(plantecophys)
 # #plot(seq_Ci, aci$ALEAF)
 # with(aci, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
 
-p50 <- 2.5
-K_max <- 8
+p50 <- 8.5
+K_max <- 800
 res <- 1/K_max
-conductance1 <- function(p50,x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 - x))))))
+conductance1 <- function(p50,x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 + x))))))
 
 
-gs_seq <- seq(0.001, 1, length=100)
+gs_seq <- seq(0.001, 0.01, length=1000)
 gctogw <- 1.57  # conversion
 Ca <- 400
 gc <- gs / gctogw  # stomatal conductance to CO2
 
-photo1 <- Photosyn( GS=gs_seq, Ca=Ca )
-#aci_1 <- Aci(Ci=photo1$Ci, Ca=Ca) # A-ci calculates transpiration
-Evapo <- photo1$ELEAF
+Evapo <- rep(0, length=1000)
+psi_leaf <- rep(0, length=1000)
+psi_leaf_delta <- rep(0, length=1000)
+psi_soil <- 0
+As <- rep(0, length=1000)
+GS_out <- rep(0, length=1000)
+slope_As <- rep(0, length=1000)
+slope_cost <- rep(0, length=1000)  
+kak_plc <- rep(0, length=1000)  
+  
+for(i in  1:1000)
+{
+  
+  photo1 <- Photosyn( GS=gs_seq[i], Ca=Ca )
+  #aci_1 <- Aci(Ci=photo1$Ci, Ca=Ca) # A-ci calculates transpiration
+  Evapo[i] <- photo1$ELEAF
+  As[i] <- photo1$ALEAF
+  GS_out[i] <- photo1$GS
+  
+  # leaf matric potential is something like
+  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(p50, psi_leaf[i])) - psi_leaf[i]) 
 
-# leaf matric potential is something like
-psi_leaf <- function(psi_soil,E, conductance1) { psi_soil - (E*(1/conductance1)) }
+  print("---------------------------------")
+  print("i")
+  print(i)
+  print("psi_leaf[i-1]")
+  print(psi_leaf[i-1])
+  
+  if(i > 1)
+  {
+  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(p50, psi_leaf[i-1])) - psi_leaf[i-1]) 
+  psi_leaf[i] <- psi_leaf[i-1] + psi_leaf_delta[i]
+  slope_As[i] <- ( As[i] - As[i-1] ) / ( GS_out[i] - GS_out[i-1] )
+  kak_plc[i] <- 1 - conductance1(p50, psi_leaf[i]) /conductance1(p50, 0) 
+  slope_cost[i] <- ( kak_plc[i] - kak_plc[i-1] ) / ( GS_out[i] - GS_out[i-1] )
+#  slope_cost[i] <- 1 - ( (conductance1(p50, 0) - conductance1(p50, psi_leaf[i]))/conductance1(p50, 0) ) # wrong
+  }
 
+#  slope_cost[i] <- 1 - ( (conductance1(p50, 0) - conductance1(p50, psi_leaf[i]))/conductance1(p50, 0) ) # wrong
+#  slope_cost[i] <- ( (conductance1(p50, 0) - conductance1(p50, psi_leaf[i]))/conductance1(p50, 0) ) # wrong
+  #  slope_cost[i] <- conductance1(p50, psi_leaf[i])
+#  kak_plc[i] <- 1 - conductance1(p50, psi_leaf[i]) /conductance1(p50, 0) 
+#  slope_cost[i] <- kak_plc[]
+  
+}
 
 
 

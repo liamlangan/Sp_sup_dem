@@ -11,12 +11,12 @@ res <- 1/K_max
 conductance1 <- function(p50,x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 + x))))))
 
 
-gs_seq <- seq(0.001, 0.01, length=1000)
+gs_seq <- seq(0.001, 0.01, length=1000) # what are the units???
 gctogw <- 1.57  # conversion
 Ca <- 400
 gc <- gs / gctogw  # stomatal conductance to CO2
 
-Evapo <- rep(0, length=1000)
+Evapo <- rep(0, length=1000) # what are the units? 
 psi_leaf <- rep(0, length=1000)
 psi_leaf_delta <- rep(0, length=1000)
 psi_soil <- 0
@@ -36,7 +36,8 @@ for(i in  1:1000)
   GS_out[i] <- photo1$GS
   
   # leaf matric potential is something like
-  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(p50, psi_leaf[i])) - psi_leaf[i]) 
+  if(i == 1)
+  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(p50, psi_leaf[i])) - psi_leaf[i]) # psi_leaf starts at 0 MPa (i.e. psi_soil)
 
   print("---------------------------------")
   print("i")
@@ -67,8 +68,9 @@ for(i in  1:1000)
 
 
 # NOTE: I can't find an easy way to calculate leaf temperaute easily. We have it in ADGVM though. 
-plot(photo1$GS, photo1$ALEAF)
-
+# plot(photo1$GS, photo1$ALEAF)
+plot(GS_out, Evapo)
+plot(GS_out, psi_leaf)
 
 par(yaxs="i")
 #with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))

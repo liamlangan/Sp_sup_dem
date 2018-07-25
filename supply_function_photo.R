@@ -5,20 +5,28 @@ library(plantecophys)
 # #plot(seq_Ci, aci$ALEAF)
 # with(aci, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
 
-p50 <- 1.5
+p50 <- 1.8
 p_crit <- 10 # as in Sperry
-K_max <- 8
+
+# k_leaf <- function(p50) {((61.922 + (7.758 * p50)) * (18 * 0.001)) / 1000} from aDGVM2 (kg m^-1 s^-1 MPa^-1)
+k_leaf <- function(p50) {(61.922 + (7.758 * p50 * -1))/0.2} # (mmol m^-2 s^-1 MPa^-1) (0.2 assumes leaf lenfth of 20cm)
+
+K_max <- k_leaf(p50)
 res <- 1/K_max
-conductance1 <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 - x))))))
+conductance1 <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 + x)))))) # (mmol m^-2 s^-1 MPa^-1) I don't get why sperry doesn't have the difference between soil and leaf----
+test <- seq(0, 8, length=1000)
 
+gs_seq_test <- seq( ((0.000001 * (18 * 0.001))/(1000*0.2))*43200, ((0.1* (18 * 0.001))/(1000*0.2))*43200, length=1000) # stomatal conductance to co2 (mol m^-2 s^-1) (Medlyn 2011)
 
-gs_seq <- seq(0.000001, 0.1, length=1000) # what are the units???
+gs_seq <- seq(0.0001, 0.5, length=1000) # stomatal conductance to co2 (mol m^-2 s^-1) (Medlyn 2011)
+
 gctogw <- 1.57  # conversion
 Ca <- 400
 gc <- gs / gctogw  # stomatal conductance to CO2
 
-Evapo <- rep(0, length=1000) # what are the units? 
+Evapo <- rep(0, length=1000) # this should be (mmol m^-2 s^-1) (ref. plantecophys package)
 psi_leaf <- rep(0, length=1000)
+psi_leaf_x <- rep(0, length=1000)
 psi_leaf_delta <- rep(0, length=1000)
 psi_soil <- 0
 As <- rep(0, length=1000)
@@ -26,14 +34,16 @@ GS_out <- rep(0, length=1000)
 slope_As <- rep(0, length=1000)
 slope_cost <- rep(0, length=1000)  
 kak_plc <- rep(0, length=1000)  
-  
-psi_leaf <- seq(0.0, 8, length=1000)
+kak_plcx <- rep(0, length=1000)  
+
+psi_leafxx <- seq(0.0, 8, length=1000)
 cum_can_transportx <- matrix(0,0,nrow=1000, ncol=1) # this is the supply function
 predawn_soil_mat_pot <- psi_soil # this assumes initial plant matric potential is the same as the soil matric potential
+conductance1x <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 - x)))))) # (mmol m^-2 s^-1 MPa^-1) I don't get why sperry doesn't have the difference between soil and leaf----
 
   for(i in 1:1000)
   {
-    ffx <- integrate(conductance1, predawn_soil_mat_pot, psi_leaf[i] )
+    ffx <- integrate(conductance1x, predawn_soil_mat_pot, psi_leafxx[i] )
     cum_can_transportx[i,] <- pmax(0, ffx$value)
   }
 
@@ -43,26 +53,38 @@ for(i in  1:1000)
   
   photo1 <- Photosyn( GS=gs_seq[i], Ca=Ca )
   #aci_1 <- Aci(Ci=photo1$Ci, Ca=Ca) # A-ci calculates transpiration
-  Evapo[i] <- photo1$ELEAF
+  Evapo[i] <- photo1$ELEAF # (mmol m^-2 s^-1) (mmol H2O m^-2 s^-1) (1000*GS*VPD/Patm) (https://bitbucket.org/remkoduursma/plantecophys/src/0a72ce787d8962d07203f4cd1427d92ff11833df/R/photosyn.R?at=master&fileviewer=file-view-default)
   As[i] <- photo1$ALEAF
-  GS_out[i] <- photo1$GS
+  GS_out[i] <- photo1$GS  # mol m^-2 s^-1 (Medlyn et al 2011)
   
   # leaf matric potential is something like
   if(i == 1)
-  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(p50, psi_leaf[i])) - psi_leaf[i]) # psi_leaf starts at 0 MPa (i.e. psi_soil)
-
+  {
+  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(psi_leaf[i])) - psi_leaf[i]) # psi_leaf starts at 0 MPa (i.e. psi_soil)
+  psi_leaf_x[i] <-  psi_soil - (Evapo[i]*(1/conductance1(psi_soil))) # psi_leaf starts at 0 MPa (i.e. psi_soil)
+  }
+  
   print("---------------------------------")
   print("i")
   print(i)
   print("psi_leaf[i-1]")
   print(psi_leaf[i-1])
+  print(psi_leaf_x[i-1])
   
   if(i > 1)
   {
-  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(p50, psi_leaf[i-1])) - psi_leaf[i-1]) 
+    
+  print("here")  
+  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1( psi_leaf[i-1])) - psi_leaf[i-1]) 
+  psi_leaf_x[i] <-  psi_soil - (Evapo[i]*(1/conductance1( psi_leaf_x[i-1]))) 
+  print("here2")  
+  print("psi_leaf_x")
+  print(psi_leaf_x[i])
+  
   psi_leaf[i] <- psi_leaf[i-1] + psi_leaf_delta[i]
   slope_As[i] <- ( As[i] - As[i-1] ) / ( GS_out[i] - GS_out[i-1] )
-  kak_plc[i] <- 1 - conductance1(p50, psi_leaf[i]) /conductance1(p50, 0) 
+  kak_plc[i] <- 1 - (conductance1(psi_leaf[i]) / conductance1(0)) 
+  kak_plcx[i] <- 1 - (conductance1(psi_leaf_x[i]) / conductance1(0)) 
   slope_cost[i] <- ( kak_plc[i] - kak_plc[i-1] ) / ( GS_out[i] - GS_out[i-1] )
 #  slope_cost[i] <- 1 - ( (conductance1(p50, 0) - conductance1(p50, psi_leaf[i]))/conductance1(p50, 0) ) # wrong
   }
@@ -81,9 +103,28 @@ for(i in  1:1000)
 
 # NOTE: I can't find an easy way to calculate leaf temperaute easily. We have it in ADGVM though. 
 # plot(photo1$GS, photo1$ALEAF)
-plot(GS_out, Evapo)
+plot(GS_out, Evapo) # Evapo (mmol m^-2 s^-1), GS (mol m^-2 s^-1) 
+plot(Evapo,GS_out) # Evapo (mmol m^-2 s^-1), GS (mol m^-2 s^-1) 
 plot(GS_out[1:1000], psi_leaf[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Stomatal conductance (check units)"))
 plot(Evapo, psi_leaf[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Transpiraiton"))
+plot(Evapo, psi_leaf_delta[1:1000], ylab=c("psi_leafdelta (MPa)"), xlab=("Transpiraiton"))
+plot(Evapo, psi_leaf_x[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Transpiraiton"))
+plot(GS_out[1:1000], psi_leaf_x[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Stomatal conductance"))
+
+plot(GS_out, Evapo, ylab=c("Evapo"), xlab=("GS"))
+
+plot(GS_out, As, ylab=c("As"), xlab=("GS"))
+
+plot(Evapo, As, ylab=c("As"), xlab=("Evapo"))
+
+plot(GS_out, kak_plc, ylab=c("loss of conductance "), xlab=("GS"))
+
+plot(GS_out, kak_plcx, ylab=c("loss of conductance "), xlab=("GS"))
+
+##compare integral transpiration to interative transpirtation for a given psi_leaf
+plot(psi_leafxx, cum_can_transportx)
+plot(psi_leaf_x[1:1000], Evapo, xlab=c("psi_leaf (MPa)"), ylab=("Transpiraiton"))
+## VERY CLOSE - for iterative method with psi leaf = -0.032189 transp=7.5, for integral with psi leaf = 0.032 transp=7.47 
 
 # par(yaxs="i")
 # #with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
@@ -92,7 +133,25 @@ plot(Evapo, psi_leaf[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Transpiraiton"))
 # 
 # 
 
-
+# gs <- 0.2  # stomatal conductance to H2O
+# Ca <- 400  # ambient CO2
+# gctogw <- 1.57  # conversion
+# gc <- gs / gctogw  # stomatal conductance to CO2
+# # Demand curve (Farquhar model)
+# p <- Aci(seq(60,500,length=101), Ca=400)
+# # Provide stomatal conductance as input, gives intersection point.
+# g <- Photosyn(GS=gs, Ca=Ca)
+# # Intersection point visualized
+# par(yaxs="i")
+# with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
+# with(g, points(Ci, ALEAF, pch=19, col="red"))
+# abline(gc * Ca, -gc, lty=5)
+# legend("topleft", c(expression("Demand:"~~A==f(C[i])),
+#                     expression("Supply:"~~A==g[c]*(C[a]-C[i])),
+#                     "Operating point"),
+#        lty=c(1,5,-1),pch=c(-1,-1,19),
+#        col=c("black","black","red"),
+#        bty='n', cex=0.9)
 
 
 

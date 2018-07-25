@@ -104,6 +104,7 @@ for(i in  1:1000)
   
 }
 
+## this is just to edit the last commit
   normalize <- function(x) 
   { 
     x[!is.finite(x)] <- 0

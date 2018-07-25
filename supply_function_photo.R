@@ -11,7 +11,7 @@ p_crit <- 10 # as in Sperry
 # k_leaf <- function(p50) {((61.922 + (7.758 * p50)) * (18 * 0.001)) / 1000} from aDGVM2 (kg m^-1 s^-1 MPa^-1)
 k_leaf <- function(p50) {(61.922 + (7.758 * p50 * -1))/0.2} # (mmol m^-2 s^-1 MPa^-1) (0.2 assumes leaf lenfth of 20cm)
 
-K_max <- k_leaf(p50)
+K_max <- k_leaf(p50)/30 # note I'm only dividing by 10 to reduce K from the values in aDGVM2 as I want to investigate how psi-leaf changes
 res <- 1/K_max
 conductance1 <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 + x)))))) # (mmol m^-2 s^-1 MPa^-1) I don't get why sperry doesn't have the difference between soil and leaf----
 test <- seq(0, 8, length=1000)
@@ -27,6 +27,7 @@ gc <- gs / gctogw  # stomatal conductance to CO2
 Evapo <- rep(0, length=1000) # this should be (mmol m^-2 s^-1) (ref. plantecophys package)
 psi_leaf <- rep(0, length=1000)
 psi_leaf_x <- rep(0, length=1000)
+psi_leaf_x2 <- rep(0, length=1000)
 psi_leaf_delta <- rep(0, length=1000)
 psi_soil <- 0
 As <- rep(0, length=1000)
@@ -47,6 +48,17 @@ conductance1x <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 - x)))))) # (mmo
     cum_can_transportx[i,] <- pmax(0, ffx$value)
   }
 
+psil_e <- function(ELEAF, kl, psis) # function from PhotosynTuzet in plantecophys
+{
+  psil <- psis - ELEAF / kl
+  
+  psil[!is.finite(psil)] <- -p_crit # infinite values get set to p_crit rather than psi-soil
+  psil[(psil < -p_crit)] <- -p_crit # values more negative than p_crit get set to p_crit
+  
+  psil
+}
+
+
 
 for(i in  1:1000)
 {
@@ -60,31 +72,26 @@ for(i in  1:1000)
   # leaf matric potential is something like
   if(i == 1)
   {
-  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1(psi_leaf[i])) - psi_leaf[i]) # psi_leaf starts at 0 MPa (i.e. psi_soil)
-  psi_leaf_x[i] <-  psi_soil - (Evapo[i]*(1/conductance1(psi_soil))) # psi_leaf starts at 0 MPa (i.e. psi_soil)
+  psi_leaf_x2[i] <- psil_e(Evapo[i], conductance1(psi_soil),psi_soil)
+  psi_leaf_delta[i] <-  0
   }
   
   print("---------------------------------")
   print("i")
   print(i)
-  print("psi_leaf[i-1]")
-  print(psi_leaf[i-1])
-  print(psi_leaf_x[i-1])
+  print("psi_leaf[i]")
+  print(psi_leaf_x2[i])
   
   if(i > 1)
   {
     
-  print("here")  
-  psi_leaf_delta[i] <-  psi_soil - (Evapo[i]*(1/conductance1( psi_leaf[i-1])) - psi_leaf[i-1]) 
-  psi_leaf_x[i] <-  psi_soil - (Evapo[i]*(1/conductance1( psi_leaf_x[i-1]))) 
-  print("here2")  
-  print("psi_leaf_x")
-  print(psi_leaf_x[i])
+  psi_leaf_x2[i] <- psil_e(Evapo[i], conductance1(psi_leaf_x2[i-1]),psi_soil)
+  psi_leaf_delta[i] <-  psi_leaf_x2[i] - psi_leaf_x2[i-1] # do i need or care about this???
   
-  psi_leaf[i] <- psi_leaf[i-1] + psi_leaf_delta[i]
   slope_As[i] <- ( As[i] - As[i-1] ) / ( GS_out[i] - GS_out[i-1] )
-  kak_plc[i] <- 1 - (conductance1(psi_leaf[i]) / conductance1(0)) 
-  kak_plcx[i] <- 1 - (conductance1(psi_leaf_x[i]) / conductance1(0)) 
+  kak_plc[i] <- 1 - (conductance1(psi_leaf_x2[i]) / conductance1(0)) 
+  
+  
   slope_cost[i] <- ( kak_plc[i] - kak_plc[i-1] ) / ( GS_out[i] - GS_out[i-1] )
 #  slope_cost[i] <- 1 - ( (conductance1(p50, 0) - conductance1(p50, psi_leaf[i]))/conductance1(p50, 0) ) # wrong
   }
@@ -97,9 +104,44 @@ for(i in  1:1000)
   
 }
 
+  normalize <- function(x) 
+  { 
+    x[!is.finite(x)] <- 0
+    new <- ((x - min(x,na.rm=TRUE)) / (max(x,na.rm=TRUE) - min(x,na.rm=TRUE)))
+    new
+  }
+
+As_norm <- normalize(As)
+
+profit <- As_norm - kak_plc
+
+px <- which(profit==max(profit))  
+
+plot(As_norm)
+lines(kak_plc)
+lines(profit, col="green")
+abline(v=px)
+
+slope_As_norm <- normalize(slope_As)
 
 
+slope_As2_psi <- (As[2:1000] - As[1:999]) / ((psi_leaf_x2[2:1000]*-1) - (psi_leaf_x2[1:999]*-1))
+slope_cost2_psi <- (kak_plc[2:1000] - kak_plc[1:999]) / ((psi_leaf_x2[2:1000]*-1) - (psi_leaf_x2[1:999]*-1))
 
+slope_As2_GS <- (As[2:1000] - As[1:999]) / ((GS_out[2:1000]) - (GS_out[1:999]))
+slope_cost2_GS <- (kak_plc[2:1000] - kak_plc[1:999]) / ((GS_out[2:1000]) - (GS_out[1:999]))
+
+
+slope_As2n <- normalize(slope_As2)
+slope_cost2_norm <- normalize(slope_cost2)
+
+slope_As2n_GS <- normalize(slope_As2_GS)
+slope_cost2_norm_GS <- normalize(slope_cost2_GS)
+
+
+# slope_As2n <- normalize(slope_As2[1:794])
+
+plot( psi_leaf_x2[2:1000]*-1, (As_norm[2:1000] - As_norm[1:999]) / abs(psi_leaf_x2[2:1000] - psi_leaf_x2[1:999])  )
 
 # NOTE: I can't find an easy way to calculate leaf temperaute easily. We have it in ADGVM though. 
 # plot(photo1$GS, photo1$ALEAF)
@@ -125,6 +167,25 @@ plot(GS_out, kak_plcx, ylab=c("loss of conductance "), xlab=("GS"))
 plot(psi_leafxx, cum_can_transportx)
 plot(psi_leaf_x[1:1000], Evapo, xlab=c("psi_leaf (MPa)"), ylab=("Transpiraiton"))
 ## VERY CLOSE - for iterative method with psi leaf = -0.032189 transp=7.5, for integral with psi leaf = 0.032 transp=7.47 
+
+
+psil_e <- function(ELEAF, kl, psis) # function from PhotosynTuzet in plantecophys
+  {
+  psil <- psis - ELEAF / kl
+  
+  psil[!is.finite(psil)] <- psis
+  
+  psil
+  }
+
+
+
+
+
+
+PhotosynTuzet_f <- PhotosynTuzet(g1=8, Ca=Ca, psis=0, kl=2, sf=2, psif= (p50*-1))
+PhotosynTuzet_f <- PhotosynTuzet(g1=8, Ca=Ca, psis=0, kl=K_max, sf=2, psif= (p50*-1))
+
 
 # par(yaxs="i")
 # #with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))

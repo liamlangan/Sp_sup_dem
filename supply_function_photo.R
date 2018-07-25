@@ -5,13 +5,14 @@ library(plantecophys)
 # #plot(seq_Ci, aci$ALEAF)
 # with(aci, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
 
-p50 <- 8.5
-K_max <- 800
+p50 <- 1.5
+p_crit <- 10 # as in Sperry
+K_max <- 8
 res <- 1/K_max
-conductance1 <- function(p50,x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 + x))))))
+conductance1 <- function(x) (K_max*(1 - (1 / (1 + exp(2.0*(p50 - x))))))
 
 
-gs_seq <- seq(0.001, 0.01, length=1000) # what are the units???
+gs_seq <- seq(0.000001, 0.1, length=1000) # what are the units???
 gctogw <- 1.57  # conversion
 Ca <- 400
 gc <- gs / gctogw  # stomatal conductance to CO2
@@ -26,6 +27,17 @@ slope_As <- rep(0, length=1000)
 slope_cost <- rep(0, length=1000)  
 kak_plc <- rep(0, length=1000)  
   
+psi_leaf <- seq(0.0, 8, length=1000)
+cum_can_transportx <- matrix(0,0,nrow=1000, ncol=1) # this is the supply function
+predawn_soil_mat_pot <- psi_soil # this assumes initial plant matric potential is the same as the soil matric potential
+
+  for(i in 1:1000)
+  {
+    ffx <- integrate(conductance1, predawn_soil_mat_pot, psi_leaf[i] )
+    cum_can_transportx[i,] <- pmax(0, ffx$value)
+  }
+
+
 for(i in  1:1000)
 {
   
@@ -70,14 +82,15 @@ for(i in  1:1000)
 # NOTE: I can't find an easy way to calculate leaf temperaute easily. We have it in ADGVM though. 
 # plot(photo1$GS, photo1$ALEAF)
 plot(GS_out, Evapo)
-plot(GS_out, psi_leaf)
+plot(GS_out[1:1000], psi_leaf[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Stomatal conductance (check units)"))
+plot(Evapo, psi_leaf[1:1000], ylab=c("psi_leaf (MPa)"), xlab=("Transpiraiton"))
 
-par(yaxs="i")
-#with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
-with(photo1, points(Ci, ALEAF, pch=19, col="red"))
-abline(gc * Ca, -gc, lty=5)
-
-
+# par(yaxs="i")
+# #with(p, plot(Ci, ALEAF, type='l', ylim=c(0,max(ALEAF))))
+# with(photo1, points(Ci, ALEAF, pch=19, col="red"))
+# abline(gc * Ca, -gc, lty=5)
+# 
+# 
 
 
 

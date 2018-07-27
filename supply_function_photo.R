@@ -18,7 +18,7 @@ test <- seq(0, 8, length=1000)
 
 gs_seq_test <- seq( ((0.000001 * (18 * 0.001))/(1000*0.2))*43200, ((0.1* (18 * 0.001))/(1000*0.2))*43200, length=1000) # stomatal conductance to co2 (mol m^-2 s^-1) (Medlyn 2011)
 
-gs_seq <- seq(0.0001, 0.5, length=1000) # stomatal conductance to co2 (mol m^-2 s^-1) (Medlyn 2011)
+gs_seq <- seq(0.0001, 0.8, length=1000) # stomatal conductance to co2 (mol m^-2 s^-1) (Medlyn 2011)
 
 gctogw <- 1.57  # conversion
 Ca <- 400
@@ -58,7 +58,25 @@ psil_e <- function(ELEAF, kl, psis) # function from PhotosynTuzet in plantecophy
   psil
 }
 
-
+###
+# fsig_tuzet <- function(psil, sf=3.2, psif=-1.9) # this appears to be cavitation function from PhotosynTuzet in plantecophys
+#   {
+#     (1+exp(sf*psif))/(1+exp(sf*(psif-psil)))
+#   }
+#
+# In PhotosynTuzet, fsig_tuzet is called in the BBmultiplier as (BBmult=(g1/Ca)*fsig_tuzet)
+# In Photosyn this BBmult is called, its usage is described as follows:
+# "Finally, \code{Photosyn} provides a very flexible Ball-Berry model, where 
+#  the multiplier has to be specified by the user, the model is:
+#  
+#  \deqn{GS = g0 + BBmult*ALEAF}
+#  
+#  This interface can be used to quickly simulate what happens if stomata do 
+#  not respond to humidity at all (in which case BBmult=g1/Ca, or ca. 5/400), or 
+#  to use the Tuzet model of stomatal conductance inside another model that provides 
+#  the leaf water potential function."
+#
+####
 
 for(i in  1:1000)
 {
@@ -123,6 +141,38 @@ lines(kak_plc)
 lines(profit, col="green")
 abline(v=px)
 
+slope_profit <- ( profit[2:1000] - profit[1:999] ) / ( GS_out[2:1000] - GS_out[1:999] )
+slope_profit_norm <- normalize(slope_profit) 
+plot(slope_profit, type="l")
+plot(slope_profit_norm)
+plot(profit)
+abline(h=0)
+
+
+graphics.off()
+par(mfrow=c(2,2), mar=c(4,4,4,4))
+plot(GS_out, As, main="", ylab="As", xlab="GS", type="l") # 
+lines(GS_out, Evapo, col="green")
+legend("topleft", c("As","Evapo"), lty=c(1,1), lwd=c(2,2), col=c("black","green"), bty="n")
+
+plot(GS_out, As_norm, main="", ylab="As normalised", type="l") # 
+lines(GS_out, kak_plc, col="green", lwd=2)
+lines(GS_out, profit, col="red", lty=2, lwd=2)
+abline(v=px, col="blue", lty=3)
+legend("topleft", c("As","Cavit","Profit"), lty=c(1,1,2), lwd=c(2,2,2), col=c("black","green","red"), bty="n")
+
+plot(psi_leaf_x2*-1, As, main="", xlab="Psi Leaf (-MPa)", ylab="As", type="l") # My conductance rate assuming both transpiraiton and conductance are affected by the matric potential difference
+lines(psi_leaf_x2*-1, Evapo, main="", col="green") # My conductance rate assuming both transpiraiton and conductance are affected by the matric potential difference
+legend("topleft", c("As","Evapo"), lty=c(1,1), lwd=c(2,2), col=c("black","green"), bty="n")
+
+plot(psi_leaf_x2*-1, GS_out, main="", xlab="Psi Leaf (-MPa)", ylab="GS", type="l") # My conductance rate assuming both transpiraiton and conductance are affected by the matric potential difference
+# lines(psi_leaf_x2*-1, Evapo, cex=0.1, main="", col="green") # My conductance rate assuming both transpiraiton and conductance are affected by the matric potential difference
+
+graphics.off()
+
+print("leaf matric potential at max profit")
+print(psi_leaf_x2[px])
+
 slope_As_norm <- normalize(slope_As)
 
 
@@ -166,7 +216,7 @@ plot(GS_out, kak_plcx, ylab=c("loss of conductance "), xlab=("GS"))
 
 ##compare integral transpiration to interative transpirtation for a given psi_leaf
 plot(psi_leafxx, cum_can_transportx)
-plot(psi_leaf_x[1:1000], Evapo, xlab=c("psi_leaf (MPa)"), ylab=("Transpiraiton"))
+plot(psi_leaf_x2[1:1000], Evapo, xlab=c("psi_leaf (MPa)"), ylab=("Transpiraiton"))
 ## VERY CLOSE - for iterative method with psi leaf = -0.032189 transp=7.5, for integral with psi leaf = 0.032 transp=7.47 
 
 
